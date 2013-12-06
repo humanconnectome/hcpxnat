@@ -1,9 +1,7 @@
 from __future__ import print_function
 from datetime import datetime, timedelta
 import subprocess as sp
-import datetime
 import requests
-import urllib
 import time
 import sys
 import os
@@ -12,159 +10,11 @@ try:
 except ImportError:
     import simplejson as json
 
-### To-Do: ###
-# maybe getJSON should handle list and single dict returns
-# getXMLElement() - Bring NS map into interface
-#  e.g., getXMLElement("xnat:scanid") returns text of element
-
-class HcpInterface(object):
-    def __init__(self, url, username, password, project=None):
-        self.url = url
-        self.project = project
-        self.username = username
-        self.password = password
-        self.__sessionInit(username, password)
-        
-    def __sessionInit(self, username, password):
-        self.session = requests.Session()
-        self.session.auth = (username, password)
-        if 'humanconnectome.org' in self.url:
-            self.session.verify = True
-        else:
-            self.session.verify = False
-
-    def getJSON(self, uri):
-        """ (str) --> dict
-        Takes a REST URI and returns a list of json object as a dictionary.
-        """
-        r = self.session.get(self.url + uri)
-        if r.ok:
-            return r.json().get('ResultSet').get('Result')
-        else:
-            print("++ JSON request failed: " + str(r.status_code))
-            print("Attempted: " + self.url+uri)
-            # return False
-            sys.exit(-1)
-    
-    def getXML(self, uri):
-        """ (str) --> xml
-        """
-        formatString = '&format=xml' if '?' in uri else '?format=xml'
-        r = self.session.get(self.url + uri + formatString)
-        if r.ok:
-            return r.text[:-1]
-        else:
-            print("++ XML request failed: " + str(r.status_code))
-            print("++ Requested document: " + self.url + uri)
-            #sys.exit(-1)
-
-    def getResponse(self, uri):
-        """
-        Returns the request object
-        """
-        return self.session.get(self.url + uri)
-
-    def getFile(self, uri, f):
-        """ (str, str) --> file [create file handle??]
-        """
-        if not (uri and f):
-            print("You must specifiy a URI and file name")
-            return
-
-        print("Downloading from " + self.url + "...")
-        print(uri + " --> " + f)
- 
-        with open(f, 'wb') as handle:
-            #r = self.session.get(self.url+uri, prefetch=True)
-            r = self.session.get(self.url+uri, stream=True)
-            for block in r.iter_content(1024):
-                if not block:
-                    break
-                handle.write(block)
-
-    def getSubjectXml(self, subject_label):
-        pass
-
-    def getSubjectJson(self, subject_label):
-        pass
-
-    def getSessionXml(self, session_label):
-        """
-        Assumes subject is the value of session_label.split('_')[0]
-        """
-        pass
-
-    def getSessionJson(self, session_label):
-        pass
-
-    def getScanXml(self, session_label, scan_id):
-        """
-        Assumes subject is the value of session_label.split('_')[0]
-        """
-        pass
-    
-    def putRequest(self, uri, f=None):
-        """ (str, [str]) --> None
-        Takes a REST URI and optional file and makes a PUT request.
-        If a filename is passed, tries to upload the file.
-        """
-        if f:
-            files = {'file': open(f, 'rb')}
-            r = self.session.put(self.url+uri, files=files)
-            if r.ok:
-                print("PUT successful")
-                print(f + " --> " + self.url)
-            else:
-                print("++ PUT Request FAILED for " + uri)
-                print("++ Status: " + str(r.status_code))
-        else:
-            r = self.session.put(self.url+uri)
-            if r.ok:
-                print("PUT successful for " + uri)
-                return r
-            else:
-                print("++ PUT request FAILED for " + uri)
-                print("++ Status: " + str(r.status_code))
-
-    def putSessionXml(self, xml, session_label):
-        url = self.url+'/REST/projects/%s/subjects/%s/experiments/%s?xsiType=xnat:mrSessionData' % \
-                   (self.project, session_label.split('_')[0], session_label)
-        #print(xml)
-        print(url)
-        hdrs = {'Content-Type': 'text/xml'}
-
-        r = self.session.put(url, data=xml, headers=hdrs)
-        print(r.text)
-        print(r.status_code)
-    
-    def deleteRequest(self, uri):
-        """ (str) --> None
-        Tries to delete the resouce specified by the uri
-        """
-        r = self.session.delete(self.url+uri)
-        if r.ok:
-            print("DELETE successful for " + uri)
-        else:
-            print("++ DELETE request FAILED for " + self.url+uri)
-            print("++ Status: " + str(r.status_code))
-
+__version__ = "0.0.1"
 
 class PipelineManager(HcpInterface):
-    pass
-
-
-class ResourceManager(HcpInterface):
-
-    ### SANITY CHECKS ###
-    def sanityCheck(self, resource):
+    def launch(self):
         pass
-
-    def __checkEVs(self):
-        pass
-
-    def __checkFSFs(self):
-        pass
-    ### END SANITY CHECKS ###
 
 
 class Pipeline(object):
@@ -407,7 +257,7 @@ class Pipeline(object):
                     print(r)
                     print("\n  Files for resource with label "+r.get('label'))
                     for f in files:
-                        print(f) 
+                        print(f)
 
             ########################################################
 
@@ -622,27 +472,3 @@ def wait(seconds):
         print('\n')
 """
 #################################################
-
-if __name__ == "__main__":
-
-    """ Instanciation Tests """
-    intradb = HcpInterface('https://intradb.humanconnectome.org', 'mhileman', 'hcp@XNAT!', 'HCP_Phase2')
-    print("URL: %s \nProject: %s" % (intradb.url, intradb.project))
-
-    """ Get some stuff """
-    json = intradb.getJSON('/REST/projects')
-    xml = intradb.getXML('/REST/projects/'+intradb.project+'/subjects/100307/experiments/100307_strc/scans/10')
-    print("\nJSON object - Projects:")
-    print(json)
-    print("\nXML object - 100307 subject info:")
-    print(xml)
-
-    #pipe = Pipeline('https://intradb.humanconnectome.org', 'HCP_Phase2')
-    #pipe.url = 'https://intradb.humanconnectome.org'
-
-    #intradb = ResourceManager('https://intradb.humanconnectome.org', 'mhileman', 'hcp@XNAT!')
-    #print("Connected to " + intradb.url + " as " + intradb.username)
-
-    """ Verification Tests """
-
-    """ Processing Tests """
