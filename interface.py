@@ -23,26 +23,55 @@ class HcpInterface(object):
         self.project = project
         self.username = username
         self.password = password
-        self.subject = None
-        self.session = None
-        self.scanid = None
+        self.subject_label = None
+        self.session_label = None
+        self.scan_id = None
         self.__sessionInit(username, password)
         # TODO - Really need a password conf option since in GitHub
 
     def __sessionInit(self, username, password):
         self.session = requests.Session()
         self.session.auth = (username, password)
+
         if 'humanconnectome.org' in self.url:
             self.session.verify = True
         else:
             self.session.verify = False
-        # TODO - Need to check auth success here
+
+        # Check for a successful login
+        r = self.session.get(self.url + '/REST/version')
+        if not r.ok:
+            print("Login attempt failed.")
+            sys.exit(-1)
+
+    def getJson(self, uri):
+        """ (str) --> dict
+        Takes a REST URI and returns a list of json object as a dictionary.
+        """
+        # Make format explicit if not already
+        if 'format=json' not in uri:
+            if '?' in uri:
+                uri += '&format=json'
+            else:
+                uri += '?format=json'
+
+        r = self.session.get(self.url + uri)
+        #print(r.text)
+        if r.ok:
+            return r.json().get('ResultSet').get('Result')
+        else:
+            print("++ JSON request failed: " + str(r.status_code))
+            print("Attempted: " + self.url+uri)
+            # return False
+            sys.exit(-1)
 
     def getJSON(self, uri):
         """ (str) --> dict
         Takes a REST URI and returns a list of json object as a dictionary.
         """
+        print("getJSON Deprecated!!!")
         r = self.session.get(self.url + uri)
+        print(r.text)
         if r.ok:
             return r.json().get('ResultSet').get('Result')
         else:
@@ -88,20 +117,20 @@ class HcpInterface(object):
                 handle.write(block)
 
     def getSubjectXml(self):
-        if not self.subject:
+        if not self.subject_label:
             msg = "No subject specified. You must set the object's subject before calling."
             #raise InstanceVariableUnsetError(msg, self)
 
     def getSubjectJson(self):
-        if not self.subject:
+        if not self.subject_label:
             print("No subject specified. You must set the object's subject and session before calling.")
 
     def getSessionXml(self):
-        if not (self.subject and self.session):
+        if not (self.subject_label and self.session_label):
             print("No subject or session defined.\nYou must set the subject and session instance variables.")
 
     def getSessionJson(self):
-        if not (self.subject and self.session):
+        if not (self.subject_label and self.session_label):
             print("No subject specified. You must set the object's subject xxx before calling.")
 
     def getScanXml(self, session_label, scan_id):
