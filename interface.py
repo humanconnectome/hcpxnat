@@ -1,15 +1,12 @@
 from __future__ import print_function
 from lxml import etree
+import ConfigParser
 import requests
 import sys
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 """
 """
-__version__ = "0.5.0"
+__version__ = "0.7.0"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -21,20 +18,26 @@ NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 'xdat': 'http://nrg.wustl.edu/xdat
 
 
 class HcpInterface(object):
-    def __init__(self, url, username, password, project=None):
+    def __init__(self, url, username=None, password=None, project=None, config=None):
         self.url = url
+        self.config = config
         self.project = project
         self.username = username
         self.password = password
         self.subject_label = None
         self.session_label = None
         self.scan_id = None
-        self.__sessionInit(username, password)
-        # TODO - Really need a password conf option since in GitHub
+        self.__sessionInit()
 
-    def __sessionInit(self, username, password):
+    def __sessionInit(self):
+        if self.config:
+            cfg = ConfigParser.ConfigParser()
+            cfg.read(self.config)
+            self.username = cfg.get('auth', 'username')
+            self.password = cfg.get('auth', 'password')
+
         self.session = requests.Session()
-        self.session.auth = (username, password)
+        self.session.auth = (self.username, self.password)
 
         if 'humanconnectome.org' in self.url:
             self.session.verify = True
@@ -44,7 +47,8 @@ class HcpInterface(object):
         # Check for a successful login
         r = self.session.get(self.url + '/REST/version')
         if not r.ok:
-            print("Login attempt failed.")
+            print("++ Connection Error")
+            print("++ Status: " + str(r.status_code))
             sys.exit(-1)
 
 ################################# Json Methods ################################
@@ -67,16 +71,31 @@ class HcpInterface(object):
             # return False
             sys.exit(-1)
 
+    # TODO
     def getSubjectJson(self):
         if not self.subject_label:
             print("No subject specified. You must set the object's subject and session before calling.")
 
+    # TODO
     def getSessionJson(self):
         if not (self.subject_label and self.session_label):
             print("No subject specified. You must set the object's subject xxx before calling.")
 
     def getSubjectSessions(self):
-        pass
+        """ () --> dict
+        """
+        if not self.project and not self.subject_label:
+            print("Project and subject must be set for interface object")
+            sys.exit(-1)
+        uri = self.url + '/REST/experiments?xsiType=xnat:mrSessionData' + \
+            '&project=' + self.project + \
+            '&subject_label=' + self.subject_label
+
+        r = self.session.get(uri)
+        if r.ok:
+            return r.json().get('ResultSet').get('Result')
+        else:
+            print("++ Session request failed for subject " + self.subject_label)
 
     def getProjectSessions(self):
         """ () --> dict
@@ -84,14 +103,14 @@ class HcpInterface(object):
         if not self.project:
             print("Project must be specified for interface object")
             sys.exit(-1)
-        uri = self.url + '/REST/experiments?xsiType=xnat:mrSessionData&project=' + self.project
+        uri = self.url + '/REST/experiments?xsiType=xnat:mrSessionData' + \
+            '&project=' + self.project
 
         r = self.session.get(uri)
         if r.ok:
             return r.json().get('ResultSet').get('Result')
         else:
             print("++ Session request failed for project " + self.project)
-###############################################################################
 
 ################################## Xml Methods ################################
     def getXml(self, uri):
@@ -108,15 +127,18 @@ class HcpInterface(object):
             print("++ XML request failed: " + str(r.status_code))
             print("++ Requested document: " + self.url + uri)
 
+    # TODO
     def getSubjectXml(self):
         if not self.subject_label:
             msg = "No subject specified. You must set the object's subject before calling."
             #raise InstanceVariableUnsetError(msg, self)
 
+    # TODO
     def getSessionXml(self):
         if not (self.subject_label and self.session_label):
-            print("No subject or session defined.\nYou must set the subject and session instance variables.")
+            print("Subject and session must be set for interface object.")
 
+    # TODO
     def getScanXml(self):
         """
         """
@@ -153,7 +175,6 @@ class HcpInterface(object):
         r = self.session.put(url, data=xml, headers=hdrs)
         print(r.text)
         print(r.status_code)
-###############################################################################
 
 ################################ General Methods ##############################
     def getResponse(self, uri):
@@ -231,7 +252,6 @@ class HcpInterface(object):
         else:
             print("++ DELETE request FAILED for " + self.url+uri)
             print("++ Status: " + str(r.status_code))
-###############################################################################
 
 ############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
@@ -261,18 +281,4 @@ class HcpInterface(object):
             print("++ XML request failed: " + str(r.status_code))
             print("++ Requested document: " + self.url + uri)
             #sys.exit(-1)
-###############################################################################
-
-if __name__ == "__main__":
-
-    idb = HcpInterface('https://intradb.humanconnectome.org', 'mhileman', 'hcp@XNAT!', 'HCP_Phase2')
-    cdb = HcpInterface('https://db.humanconnectome.org', 'admin', 'hcpAdmiN181')
-    print("Intradb:\nURL: %s \nProject: %s" % (idb.url, idb.project))
-    print("Connectomedb:\nURL: " + cdb.url)
-
-    """
-    # PASS
-    print("Getting Html header element on " + idb.url)
-    r = idb.getResponse('/REST/projects/HCP_Phase2/subjects/100307/experiments/100307_strc/scans/11/resources/NIFTI')
-    print("Date header: " + r.headers['date'])
-    """
+###############################################################################s

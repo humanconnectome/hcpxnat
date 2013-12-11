@@ -5,8 +5,12 @@ import unittest
 class TestHcpInterface(unittest.TestCase):
 
     def setUp(self):
-        self.idb = HcpInterface('https://intradb.humanconnectome.org', 'mhileman', 'hcp@XNAT!', 'HCP_Phase2')
-        self.cdb = HcpInterface('https://db.humanconnectome.org', 'admin', 'hcpAdmiN181')
+        idb_config_file = '/home/NRG/mhilem01/.hcpxnat_intradb.cfg'
+        cdb_config_file = '/home/NRG/mhilem01/.hcpxnat_cdb.cfg'
+        self.idb = HcpInterface('https://intradb.humanconnectome.org',
+            project='HCP_Phase2', config=idb_config_file)
+        self.cdb = HcpInterface('https://db.humanconnectome.org',
+            project='HCP_Q3', config=cdb_config_file)
         self.idb.subject_label = '100307'
         self.idb.session_label = '100307_strc'
         self.idb.scan_id = '19'
@@ -30,15 +34,23 @@ class TestHcpInterface(unittest.TestCase):
     def test_getSessionJson(self):
         self.assertTrue(False)
 
-    @unittest.expectedFailure
+    def test_getProjectSessions(self):
+        sessions = self.idb.getProjectSessions()
+        session_labels = list()
+
+        for s in sessions:
+            session_labels.append(s.get('label'))
+
+        self.assertTrue(session_labels.__len__() > 100)
+
     def test_getSubjectSessions(self):
-        session_labels = self.idb.getSubjectSessions()
+        sessions = self.idb.getSubjectSessions()
+        session_labels = list()
+
+        for s in sessions:
+            session_labels.append(s.get('label'))
 
         self.assertTrue('100307_strc' in session_labels)
-
-    @unittest.skip("test not implemented")
-    def test_getProjectSessions(self):
-        pass
 
     ## Xml Tests
     def test_getXml(self):
@@ -54,11 +66,10 @@ class TestHcpInterface(unittest.TestCase):
 
     ## General Tests
     def test_getHeaderField(self):
-        uri = 'https://db.humanconnectome.org/data/subjects/ConnectomeDB_S00381?format=json'
-        server = self.getHeaderField(uri, 'Server')
+        uri = "/REST/projects"
+        server = self.cdb.getHeaderField(uri, 'Server')
 
         self.assertTrue(server == 'Apache')
-
 
 
 ## Excecute Tests
