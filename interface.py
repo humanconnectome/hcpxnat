@@ -17,7 +17,7 @@ __author__ = "Michael Hileman"
 
 # Xml Namespace Mappings
 NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 'xdat': 'http://nrg.wustl.edu/xdat',
-                 'cat': 'http://nrg.wustl.edu/catalog', 'nt': 'http://nrg.wustl.edu/nt'}
+         'cat': 'http://nrg.wustl.edu/catalog', 'nt': 'http://nrg.wustl.edu/nt'}
 
 
 class HcpInterface(object):
@@ -47,7 +47,7 @@ class HcpInterface(object):
             print("Login attempt failed.")
             sys.exit(-1)
 
-############## Json Methods ##############
+################################# Json Methods ################################
     def getJson(self, uri):
         """ (str) --> list
         Takes a REST URI and returns a list of Json objects (python dicts).
@@ -91,10 +91,9 @@ class HcpInterface(object):
             return r.json().get('ResultSet').get('Result')
         else:
             print("++ Session request failed for project " + self.project)
+###############################################################################
 
-#####################################
-
-############## Xml Methods ##############
+################################## Xml Methods ################################
     def getXml(self, uri):
         """ (str) --> xml
         Returns utf-8 encoded string of the Xml
@@ -154,10 +153,9 @@ class HcpInterface(object):
         r = self.session.put(url, data=xml, headers=hdrs)
         print(r.text)
         print(r.status_code)
+###############################################################################
 
-#####################################
-
-############# General Methods #############
+################################ General Methods ##############################
     def getResponse(self, uri):
         """
         Returns a request object for the URI
@@ -231,9 +229,9 @@ class HcpInterface(object):
         else:
             print("++ DELETE request FAILED for " + self.url+uri)
             print("++ Status: " + str(r.status_code))
-#####################################
+###############################################################################
 
-########### DEPRECATED Methods ###########
+############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
         """ (str) --> dict
         Takes a REST URI and returns a list of json object as a dictionary.
@@ -261,8 +259,7 @@ class HcpInterface(object):
             print("++ XML request failed: " + str(r.status_code))
             print("++ Requested document: " + self.url + uri)
             #sys.exit(-1)
-#####################################
-
+###############################################################################
 
 if __name__ == "__main__":
 
