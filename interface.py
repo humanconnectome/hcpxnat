@@ -167,13 +167,15 @@ class HcpInterface(object):
             print("++ Request failed: " + str(r.status_code))
             print("++ Requested document: " + self.url + uri)
 
-    def getHeader(self, uri, attr):
+    def getHeaderField(self, uri, attr):
         """
         Returns only the headers for a request and ignores the body
         """
         r = self.session.get(self.url + uri, stream=True)
         if r.ok and r.headers[attr]:
             return r.headers[attr]
+        elif r.ok and not r.headers[attr]:
+            print("++ Request OK, but attribute " + attr + " does not exist")
         else:
             print("++ Request failed: " + str(r.status_code))
             print("++ Requested headers for: " + self.url + uri)
@@ -263,37 +265,14 @@ class HcpInterface(object):
 
 if __name__ == "__main__":
 
-    """ Instantiation Tests """
     idb = HcpInterface('https://intradb.humanconnectome.org', 'mhileman', 'hcp@XNAT!', 'HCP_Phase2')
     cdb = HcpInterface('https://db.humanconnectome.org', 'admin', 'hcpAdmiN181')
     print("Intradb:\nURL: %s \nProject: %s" % (idb.url, idb.project))
     print("Connectomedb:\nURL: " + cdb.url)
 
-    # TODO - Add failures to tests to see how they're handled
-    """ Get some stuff """
-    # PASS
-    print("Getting Json object for projects on " + cdb.url)
-    jsonobj = cdb.getJson('/REST/projects')
-
-    # PASS
-    print("Getting Xml by URI on " + idb.url)
-    xml = idb.getXml('/REST/projects/'+idb.project+'/subjects/100307/experiments/100307_strc/scans/10')
-
-    # PASS
-    print("Getting Xml scan element on " + idb.url)
-    idb.subject_label = '100307'
-    idb.session_label = '100307_strc'
-    idb.scan_id = '19'
-    dbScanID = idb.getScanXmlElement('xnat:dbID')
-    print("xnat:dbID for %s, scan %s --> %s" % (idb.session_label, idb.scan_id, dbScanID))
-
+    """
     # PASS
     print("Getting Html header element on " + idb.url)
     r = idb.getResponse('/REST/projects/HCP_Phase2/subjects/100307/experiments/100307_strc/scans/11/resources/NIFTI')
     print("Date header: " + r.headers['date'])
-
-    #print("\nJSON object - Projects:")
-    #print(jsonobj)
-    #print("\nXML object - 100307 subject info:")
-    #print(xml)
-    print("Done")
+    """
