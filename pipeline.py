@@ -1,5 +1,6 @@
 from __future__ import print_function
 from datetime import datetime, timedelta
+from interface import HcpInterface
 import subprocess as sp
 import requests
 import time
@@ -10,11 +11,92 @@ try:
 except ImportError:
     import simplejson as json
 
+"""
+"""
 __version__ = "0.0.1"
 
+
 class PipelineManager(HcpInterface):
-    def launch(self):
+    def __init__(self):
         pass
+
+    def launch(self, pipe_name, exp):
+        """
+        Executes a pipeline based on the name argument.
+        """
+        self.pipe_name = pipe_name
+        date_time = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+        builddir = '/data/intradb/build/'+exp.get('project')+'/'+date_time
+        archivedir = '/data/intradb/archive/'+exp.get('project')+'/arc001'
+        os.makedirs(builddir)
+        # Get list of scans
+        #scans = self.get_scans(exp)
+        resource_json = self.get_rest_data('/REST/experiments/'+exp.get('ID')+'/scans/ALL/resources')
+        scans = []
+        for r in resource_json:
+            resource = r.get('label')
+            if resource == 'DICOM':
+                scans.append(r.get('cat_id'))
+        scans.sort(key=int)
+        scans = ",".join(scans)
+
+        param = []
+        if self.pipe_name == "facemask":
+            param.append("FaceMasking/FaceMasking.xml")
+            param.append("usebet=1")
+            param.append("maskears=1")
+            param.append("invasiveness=1.0")
+            param.append("existing=Overwrite")
+            param.append("runOtherPipelines=Y")
+        elif self.pipe_name == "dcm2nii":
+            param.append("HCP/HCPDefaceDicomToNifti.xml")
+            param.append("notify=0")
+            param.append("create_nii=Y")
+            param.append("keep_qc=N")
+            param.append("overwrite_existing=Y")
+            param.append("runOtherPipelines=N")
+        elif self.pipe_name == "qc":
+            param.append("QC") # To-Do
+            param.append("structural_scan_type=T1w,T2w")
+            param.append("functional_scan_type=rfMRI,tfMRI")
+            param.append("diffusion_scan_type=dMRI")
+            param.append("")
+            param.append("")
+
+        print(self.pipe_name + " RUNNING on " + exp.get('label') +
+                      " for subject "+ exp.get('subject_ID'))
+        retval = sp.call(['/data/intradb/pipeline/bin/PipelineJobSubmitter',
+            '/data/intradb/pipeline/bin/XnatPipelineLauncher',
+            '-pipeline', '/data/intradb/pipeline/catalog/' + param[0],
+            '-id', exp.get('ID'),
+            '-host', self.url, '-u', 'mhileman', '-pwd', 'hcp@XNAT!',
+            '-dataType', 'xnat:mrSessionData',
+            '-label', exp.get('label'),
+            '-supressNotification', '-notify', 'hilemanm@mir.wustl.edu',
+            '-project', exp.get('project'),
+            '-parameter', 'mailhost=mail.nrg.wustl.edu',
+            '-parameter', 'userfullname=M.Hileman',
+            '-parameter', 'builddir='+builddir,
+            '-parameter', 'adminemail=hilemanm@mir.wustl.edu',
+            '-parameter', 'useremail=hilemanm@mir.wustl.edu',
+            # Start of paramFile (same for dcm2nii and facemask)
+            '-parameter', 'xnat_id='+ exp.get('ID'),
+            '-parameter', 'archivedir='+ archivedir, # wasn't here on last run
+            '-parameter', 'sessionId='+ exp.get('label'),
+            '-parameter', 'project='+exp.get('project'),
+            '-parameter', 'scanids='+ scans,
+            '-parameter', 'subject='+ exp.get('subject_ID'),
+            # Params specific to pipeline type
+            '-parameter', param[1],
+            '-parameter', param[2],
+            '-parameter', param[3],
+            '-parameter', param[4],
+            '-parameter', param[5]
+        ])
+        print("\nPipeline process released from queue\n")
+
+
+###############################################################################
 
 
 class Pipeline(object):
@@ -327,81 +409,7 @@ class Pipeline(object):
             session.sendmail(sender, recipients, headers+"\r\n\r\n"+self.report_str)
             session.quit()
 
-    def launch(self, pipe_name, exp):
-        """
-        Executes a pipeline based on the name argument.
-        QC has two fewer params - Need to test empty -parameter
-        """
-        self.pipe_name = pipe_name
-        date_time = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-        builddir = '/data/intradb/build/'+exp.get('project')+'/'+date_time
-        archivedir = '/data/intradb/archive/'+exp.get('project')+'/arc001'
-        os.makedirs(builddir)
-        # Get list of scans
-        #scans = self.get_scans(exp)
-        resource_json = self.get_rest_data('/REST/experiments/'+exp.get('ID')+'/scans/ALL/resources')
-        scans = []
-        for r in resource_json:
-            resource = r.get('label')
-            if resource == 'DICOM':
-                scans.append(r.get('cat_id'))
-        scans.sort(key=int)
-        scans = ",".join(scans)
 
-        param = []
-        if self.pipe_name == "facemask":
-            param.append("FaceMasking/FaceMasking.xml")
-            param.append("usebet=1")
-            param.append("maskears=1")
-            param.append("invasiveness=1.0")
-            param.append("existing=Overwrite")
-            param.append("runOtherPipelines=Y")
-        elif self.pipe_name == "dcm2nii":
-            param.append("HCP/HCPDefaceDicomToNifti.xml")
-            param.append("notify=0")
-            param.append("create_nii=Y")
-            param.append("keep_qc=N")
-            param.append("overwrite_existing=Y")
-            param.append("runOtherPipelines=N")
-        elif self.pipe_name == "qc":
-            param.append("QC") # To-Do
-            param.append("structural_scan_type=T1w,T2w")
-            param.append("functional_scan_type=rfMRI,tfMRI")
-            param.append("diffusion_scan_type=dMRI")
-            param.append("")
-            param.append("")
-
-        print(self.pipe_name + " RUNNING on "+ exp.get('label') + \
-                      " for subject "+ exp.get('subject_ID'))
-        retval = sp.call(['/data/intradb/pipeline/bin/PipelineJobSubmitter',
-            '/data/intradb/pipeline/bin/XnatPipelineLauncher',
-            '-pipeline', '/data/intradb/pipeline/catalog/' + param[0],
-            '-id', exp.get('ID'),
-            '-host', self.url, '-u', 'mhileman', '-pwd', 'hcp@XNAT!',
-            '-dataType', 'xnat:mrSessionData',
-            '-label', exp.get('label'),
-            '-supressNotification', '-notify', 'hilemanm@mir.wustl.edu',
-            '-project', exp.get('project'),
-            '-parameter', 'mailhost=mail.nrg.wustl.edu',
-            '-parameter', 'userfullname=M.Hileman',
-            '-parameter', 'builddir='+builddir,
-            '-parameter', 'adminemail=hilemanm@mir.wustl.edu',
-            '-parameter', 'useremail=hilemanm@mir.wustl.edu',
-            # Start of paramFile (same for dcm2nii and facemask)
-            '-parameter', 'xnat_id='+ exp.get('ID'),
-            '-parameter', 'archivedir='+ archivedir, # wasn't here on last run
-            '-parameter', 'sessionId='+ exp.get('label'),
-            '-parameter', 'project='+exp.get('project'),
-            '-parameter', 'scanids='+ scans,
-            '-parameter', 'subject='+ exp.get('subject_ID'),
-            # Params specific to pipeline type
-            '-parameter', param[1],
-            '-parameter', param[2],
-            '-parameter', param[3],
-            '-parameter', param[4],
-            '-parameter', param[5]
-        ])
-        print("\nPipeline process released from queue\n")
 
     def get_rest_data(self, rest_uri):
         """ (str) --> dict
@@ -457,18 +465,6 @@ class Pipeline(object):
 # otherwise run on everything (warn and require confimation on this)
 # if no args (other than pipeline name), run for all and write to log
 # else run for those specific exps and write to log
-"""
-def print_list(list, title):
-        for item in list:
-            print(item)
-        print(title + ": " + str(list.__len__()) + " scans\n")
 
-def wait(seconds):
-        sys.stdout.write('Waiting ')
-        for i in reversed(range(seconds)):
-                time.sleep(1)
-                sys.stdout.write(str(i))
-        sys.stdout.write(' ')
-        print('\n')
-"""
-#################################################
+if __name__ == "__main__":
+    idb_pipe = PipelineManager()
