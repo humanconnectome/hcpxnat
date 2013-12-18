@@ -6,7 +6,7 @@ import sys
 
 """
 """
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -57,6 +57,7 @@ class HcpInterface(object):
         Takes a REST URI and returns a list of Json objects (python dicts).
         """
         # Make format explicit if not already
+        formatString = ''
         if 'format' not in uri:
             formatString = '&format=json' if '?' in uri else '?format=json'
 
@@ -120,6 +121,7 @@ class HcpInterface(object):
         """ (str) --> xml
         Returns utf-8 encoded string of the Xml
         """
+        formatString = ''
         if 'format' not in uri:
             formatString = '&format=xml' if '?' in uri else '?format=xml'
 
