@@ -6,7 +6,7 @@ import sys
 
 """
 """
-__version__ = "0.7.1"
+__version__ = "0.8.0"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -240,7 +240,15 @@ class HcpInterface(object):
         """ () --> str
         Returns the subject label for the object's sub label or id
         """
-        pass
+        uri = '/REST/projects/%s/experiments/%s' % (self.project, self.session_label)
+        json = self.getJson(uri)
+
+        try:
+            subject_label = json[2].get('data_fields').get('dcmPatientName')
+        except AttributeError:
+            print("AttributeError: Couldn't get subject label for " + self.session_label)
+        else:
+            return subject_label
 
     def getSessionId(self):
         """ () --> str

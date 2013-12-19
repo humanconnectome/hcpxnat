@@ -35,8 +35,17 @@ class TestHcpInterface(unittest.TestCase):
     def test_getSessionJson(self):
         self.assertTrue(False)
 
-    def test_getProjectSessions(self):
-        sessions = self.idb.getProjectSessions()
+    def test_getSessions_project(self):
+        sessions = self.idb.getSessions('HCP_Phase2')
+        session_labels = list()
+
+        for s in sessions:
+            session_labels.append(s.get('label'))
+
+        self.assertTrue(session_labels.__len__() > 100)
+
+    def test_getSessions_all(self):
+        sessions = self.idb.getSessions()
         session_labels = list()
 
         for s in sessions:
@@ -57,52 +66,47 @@ class TestHcpInterface(unittest.TestCase):
     def test_getXml(self):
         uri = '/REST/projects/'+self.idb.project+'/subjects/100307/experiments/100307_strc/scans/10'
         xml = self.idb.getXml(uri)
-
         self.assertTrue('100307_strc' in xml)
 
     def test_getScanXmlElement(self):
         dbScanID = self.idb.getScanXmlElement('xnat:dbID')
-
         self.assertTrue(dbScanID == '103')
 
+    @unittest.expectedFailure
     def test_getSubjectXmlElement(self):
         date = self.idb.getSubjectXmlElement('xnat:age')
-
         self.assertTrue(date == '26')
 
     def test_getSessionXmlElement(self):
         date = self.idb.getSessionXmlElement('xnat:date')
-
         self.assertTrue(date == '2012-08-23')
 
     ## General Tests
     def test_getHeaderField(self):
         uri = "/REST/projects"
         server = self.cdb.getHeaderField(uri, 'Server')
-
         self.assertTrue(server == 'Apache')
 
     ## Convenience Method Tests
-
     def test_getSessionId(self):
         sessionID = self.idb.getSessionId()
-
         self.assertTrue(sessionID == 'HCPIntradb_E04465')
 
     def test_getSubjectId(self):
         subID = self.idb.getSubjectId()
-
         self.assertTrue(subID == 'HCPIntradb_S01642')
 
     def test_getSessionScans(self):
         scans = self.idb.getSessionScans()
-
         self.assertTrue(scans[0].get('ID') == '1')
 
     def test_getSessionScanIds(self):
         ids = self.idb.getSessionScanIds()
-
         self.assertTrue(ids.__len__() > 5)
+
+    def test_getSessionSubject(self):
+        sub = self.idb.getSessionSubject()
+        self.assertTrue(sub == '100307')
 
 
 ## Excecute Tests
