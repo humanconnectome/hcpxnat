@@ -1,15 +1,10 @@
 from __future__ import print_function
 from datetime import datetime, timedelta
 from interface import HcpInterface
-import subprocess as sp
-import requests
+import envoy
 import time
 import sys
 import os
-try:
-    import json
-except ImportError:
-    import simplejson as json
 
 """
 """
@@ -17,7 +12,22 @@ __version__ = "0.0.1"
 
 
 class PipelineManager(HcpInterface):
-    def __init__(self):
+
+    def _init(self, session_label):
+        self.builddir = '/data/intradb/build/'+exp.get('project')+'/'+date_time
+        self.archivedir = '/data/intradb/archive/'+exp.get('project')+'/arc001'
+        os.makedirs(builddir)
+
+    def launchValidation(self, session_label):
+        pass
+
+    def launchFacemask(self, session_label):
+        self._init(session_label)
+
+    def launchDicomToNifti(self, session_label):
+        pass
+
+    def launchLevel2QC(self, session_label):
         pass
 
     def launch(self, pipe_name, exp):

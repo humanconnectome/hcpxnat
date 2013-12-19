@@ -64,7 +64,13 @@ class HcpInterface(object):
         r = self.session.get(self.url + uri + formatString)
         #print(r.text)
         if r.ok:
-            return r.json().get('ResultSet').get('Result')
+            try:
+                return r.json().get('ResultSet').get('Result')
+            except AttributeError:
+                try:
+                    return r.json().get('items')
+                except AttributeError:
+                    print("Could not get a 'ResultSet' or 'items' for " + uri)
         else:
             print("++ JSON request failed: " + str(r.status_code))
             print("Attempted: " + self.url+uri)
@@ -112,6 +118,15 @@ class HcpInterface(object):
         else:
             print("++ Session request failed for project " + self.project)
 
+    def getSessionScans(self):
+        """ () --> list
+        Returns a list of dicts containing scan data
+        """
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans' % \
+            (self.project, self.subject_label, self.session_label)
+        scans = self.getJson(uri)
+        return scans
+
 ################################## Xml Methods ################################
     def getXml(self, uri):
         """ (str) --> xml
@@ -154,7 +169,46 @@ class HcpInterface(object):
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s' % \
                 (self.project, self.subject_label, self.session_label, self.scan_id)
-        xml = self.getXml(uri).encode('utf8')
+        xml = self.getXml(uri)
+        et = etree.fromstring(xml)
+
+        try:
+            elem = et.find(element, NSMAP).text
+        except AttributeError:
+            print(element + " could not be found for " + uri)
+        else:
+            return elem
+
+    def getSubjectXmlElement(self, element):
+        """ (str) --> str
+        Returns Subject element as a string
+        Uses Namespace mapping defined in NSMAP
+        """
+        if not self.subject_label:
+            print("Subject must be set for interface object")
+            return
+        uri = '/REST/projects/%s/subjects/%s' % (self.project, self.subject_label)
+        xml = self.getXml(uri)
+        et = etree.fromstring(xml)
+
+        try:
+            elem = et.find(element, NSMAP).text
+        except AttributeError:
+            print(element + " could not be found for " + uri)
+        else:
+            return elem
+
+    def getSessionXmlElement(self, element):
+        """ (str) --> str
+        Returns Session element as a string
+        Uses Namespace mapping defined in NSMAP
+        """
+        if not (self.subject_label and self.session_label):
+            print("Subject, Session, and ScanId must be set for interface object")
+            return
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' % \
+                (self.project, self.subject_label, self.session_label)
+        xml = self.getXml(uri)
         et = etree.fromstring(xml)
 
         try:
@@ -175,6 +229,56 @@ class HcpInterface(object):
         r = self.session.put(url, data=xml, headers=hdrs)
         print(r.text)
         print(r.status_code)
+
+############################## Convenience Methods ############################
+    def getSessionSubject(self):
+        """ () --> str
+        Returns the subject label for the object's sub label or id
+        """
+        pass
+
+    def getSessionId(self):
+        """ () --> str
+        Returns the session ID for the object
+        """
+        uri = '/REST/projects/%s/experiments/%s' % (self.project, self.session_label)
+        json = self.getJson(uri)
+
+        try:
+            sessionID = json[1].get('data_fields').get('id')
+        except AttributeError:
+            print("AttributeError: Couldn't get session id for " + self.session_label)
+        else:
+            return sessionID
+
+    def getSubjectId(self):
+        """ ()--> str
+        Returns the subject ID for the object's subject_label
+        """
+        uri = '/REST/projects/%s/subjects/%s' % (self.project, self.subject_label)
+        json = self.getJson(uri)
+
+        try:
+            subjectID = json[0].get('data_fields').get('ID')
+        except AttributeError:
+            print("AttributeError: Couldn't get subject id for " + self.subject_label)
+        else:
+            return subjectID
+
+    def getSessionScanIds(self):
+        """ () --> list
+        Returns a list of scan numbers for the object's session_label
+        """
+        scans = self.getSessionScans()
+        scanIds = list()
+
+        for scan in scans:
+            scanIds.append(scan.get('ID'))
+
+        if not scanIds:
+            print("Did not get any scan IDs for " + self.session_label)
+        else:
+            return scanIds
 
 ################################ General Methods ##############################
     def getResponse(self, uri):
