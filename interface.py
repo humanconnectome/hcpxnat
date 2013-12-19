@@ -6,7 +6,7 @@ import sys
 
 """
 """
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -57,6 +57,7 @@ class HcpInterface(object):
         Takes a REST URI and returns a list of Json objects (python dicts).
         """
         # Make format explicit if not already
+        formatString = ''
         if 'format' not in uri:
             formatString = '&format=json' if '?' in uri else '?format=json'
 
@@ -87,36 +88,39 @@ class HcpInterface(object):
         if not (self.subject_label and self.session_label):
             print("No subject specified. You must set the object's subject xxx before calling.")
 
+    def getSubjects(self, project=None):
+        """ () --> dict
+        """
+        if project:
+            uri = '/REST/projects/' + project + '/subjects'
+        else:
+            uri = '/REST/subjects'
+
+        return self.getJson(uri)
+
+    def getSessions(self, project=None):
+        """ (str) --> dict
+        Returns all MR Sessions for a given project if specified,
+        or all Sessions for the entire system if not.
+        """
+        if project:
+            uri = '/REST/projects/' + project + '/experiments?xsiType=xnat:mrSessionData'
+        else:
+            uri = '/REST/experiments?xsiType=xnat:mrSessionData'
+
+        return self.getJson(uri)
+
     def getSubjectSessions(self):
         """ () --> dict
         """
         if not self.project and not self.subject_label:
             print("Project and subject must be set for interface object")
             sys.exit(-1)
-        uri = self.url + '/REST/experiments?xsiType=xnat:mrSessionData' + \
+        uri = '/REST/experiments?xsiType=xnat:mrSessionData' + \
             '&project=' + self.project + \
             '&subject_label=' + self.subject_label
 
-        r = self.session.get(uri)
-        if r.ok:
-            return r.json().get('ResultSet').get('Result')
-        else:
-            print("++ Session request failed for subject " + self.subject_label)
-
-    def getProjectSessions(self):
-        """ () --> dict
-        """
-        if not self.project:
-            print("Project must be specified for interface object")
-            sys.exit(-1)
-        uri = self.url + '/REST/experiments?xsiType=xnat:mrSessionData' + \
-            '&project=' + self.project
-
-        r = self.session.get(uri)
-        if r.ok:
-            return r.json().get('ResultSet').get('Result')
-        else:
-            print("++ Session request failed for project " + self.project)
+        return self.getJson(uri)
 
     def getSessionScans(self):
         """ () --> list
@@ -132,6 +136,7 @@ class HcpInterface(object):
         """ (str) --> xml
         Returns utf-8 encoded string of the Xml
         """
+        formatString = ''
         if 'format' not in uri:
             formatString = '&format=xml' if '?' in uri else '?format=xml'
 
@@ -385,4 +390,20 @@ class HcpInterface(object):
             print("++ XML request failed: " + str(r.status_code))
             print("++ Requested document: " + self.url + uri)
             #sys.exit(-1)
+
+    def getProjectSessions(self):
+        """ () --> dict
+        """
+        print("getProjectSessions Deprecated. Use getSessions(proj_name).")
+        if not self.project:
+            print("Project must be specified for interface object")
+            sys.exit(-1)
+        uri = self.url + '/REST/experiments?xsiType=xnat:mrSessionData' + \
+            '&project=' + self.project
+
+        r = self.session.get(uri)
+        if r.ok:
+            return r.json().get('ResultSet').get('Result')
+        else:
+            print("++ Session request failed for project " + self.project)
 ###############################################################################s
