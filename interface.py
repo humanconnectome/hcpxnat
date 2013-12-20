@@ -6,7 +6,7 @@ import sys
 
 """
 """
-__version__ = "0.8.0"
+__version__ = "0.8.1"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -18,7 +18,7 @@ NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 'xdat': 'http://nrg.wustl.edu/xdat
 
 
 class HcpInterface(object):
-    def __init__(self, url, username=None, password=None, project=None, config=None):
+    def __init__(self, url=None, username=None, password=None, project=None, config=None):
         self.url = url
         self.config = config
         self.project = project
@@ -35,6 +35,8 @@ class HcpInterface(object):
             cfg.read(self.config)
             self.username = cfg.get('auth', 'username')
             self.password = cfg.get('auth', 'password')
+            self.url = cfg.get('site', 'hostname')
+            self.project = cfg.get('site', 'project')
 
         self.session = requests.Session()
         self.session.auth = (self.username, self.password)
