@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 from interface import HcpInterface
 import unittest
+import os
 
 
 class TestHcpInterface(unittest.TestCase):
 
     def setUp(self):
-        idb_config_file = '/home/NRG/mhilem01/.hcpxnat_intradb.cfg'
-        cdb_config_file = '/home/NRG/mhilem01/.hcpxnat_cdb.cfg'
-        self.idb = HcpInterface('https://intradb.humanconnectome.org',
-            project='HCP_Phase2', config=idb_config_file)
-        self.cdb = HcpInterface('https://db.humanconnectome.org',
-            project='HCP_Q3', config=cdb_config_file)
+        idb_config_file = os.path.join(os.path.expanduser('~'), '.hcpxnat_intradb.cfg')
+        cdb_config_file = os.path.join(os.path.expanduser('~'), '.hcpxnat_cdb.cfg')
+        self.idb = HcpInterface(config=idb_config_file)
+        self.cdb = HcpInterface(config=cdb_config_file)
         self.idb.subject_label = '100307'
         self.idb.session_label = '100307_strc'
         self.idb.scan_id = '19'

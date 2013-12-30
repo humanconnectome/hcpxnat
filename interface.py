@@ -176,15 +176,8 @@ class HcpInterface(object):
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s' % \
                 (self.project, self.subject_label, self.session_label, self.scan_id)
-        xml = self.getXml(uri)
-        et = etree.fromstring(xml)
 
-        try:
-            elem = et.find(element, NSMAP).text
-        except AttributeError:
-            print(element + " could not be found for " + uri)
-        else:
-            return elem
+        return self.getXmlElement(element, uri)
 
     def getSubjectXmlElement(self, element):
         """ (str) --> str
@@ -195,15 +188,8 @@ class HcpInterface(object):
             print("Subject must be set for interface object")
             return
         uri = '/REST/projects/%s/subjects/%s' % (self.project, self.subject_label)
-        xml = self.getXml(uri)
-        et = etree.fromstring(xml)
 
-        try:
-            elem = et.find(element, NSMAP).text
-        except AttributeError:
-            print(element + " could not be found for " + uri)
-        else:
-            return elem
+        return self.getXmlElement(element, uri)
 
     def getSessionXmlElement(self, element):
         """ (str) --> str
@@ -215,13 +201,20 @@ class HcpInterface(object):
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' % \
                 (self.project, self.subject_label, self.session_label)
+
+        return self.getXmlElement(element, uri)
+
+    def getXmlElement(self, element, uri):
+        """
+        Helper for all Xml Element Getters
+        """
         xml = self.getXml(uri)
         et = etree.fromstring(xml)
-
         try:
             elem = et.find(element, NSMAP).text
         except AttributeError:
             print(element + " could not be found for " + uri)
+            return None
         else:
             return elem
 
