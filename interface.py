@@ -6,7 +6,7 @@ import sys
 
 """
 """
-__version__ = "0.8.1"
+__version__ = "0.8.2"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -254,8 +254,14 @@ class HcpInterface(object):
 
         try:
             sessionID = json[1].get('data_fields').get('id')
-        except AttributeError:
-            print("AttributeError: Couldn't get session id for " + self.session_label)
+        except IndexError:
+            try:
+                sessionID = json[0].get('children')[0].get('items')[0].get('data_fields').get('id')
+            except IndexError, AttributeError:
+                print("IndexError OR AttributeError: Couldn't get session id for " + self.session_label)
+                return None
+            else:
+                return sessionID
         else:
             return sessionID
 

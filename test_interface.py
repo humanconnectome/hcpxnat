@@ -15,6 +15,9 @@ class TestHcpInterface(unittest.TestCase):
         self.idb.session_label = '100307_strc'
         self.idb.scan_id = '19'
 
+    def tearDown(self):
+        pass
+
     ## Json Tests
     def test_getJson(self):
         json_obj = self.idb.getJson('/REST/projects')
@@ -88,8 +91,17 @@ class TestHcpInterface(unittest.TestCase):
 
     ## Convenience Method Tests
     def test_getSessionId(self):
-        sessionID = self.idb.getSessionId()
-        self.assertTrue(sessionID == 'HCPIntradb_E04465')
+        """
+        Testing two sessions since the json object returned isn't always the same
+        """
+        # 100307_strc session label
+        sessionIdA = self.idb.getSessionId()
+
+        self.idb.session_label = '705341_strc'
+        sessionIdB = self.idb.getSessionId()
+
+        self.assertTrue(sessionIdA == 'HCPIntradb_E04465' 
+                    and sessionIdB == 'HCPIntradb_E15574')
 
     def test_getSubjectId(self):
         subID = self.idb.getSubjectId()
@@ -108,6 +120,10 @@ class TestHcpInterface(unittest.TestCase):
         self.assertTrue(sub == '100307')
 
 
-## Excecute Tests
-suite = unittest.TestLoader().loadTestsFromTestCase(TestHcpInterface)
-unittest.TextTestRunner(verbosity=2).run(suite)
+if __name__ == '__main__':
+    
+    all = unittest.TestLoader().loadTestsFromTestCase(TestHcpInterface)
+    # fast = unittest.TestSuite()
+    # fast.addTest(TestHcpInterface.test_getSessionId)
+    suite = all
+    unittest.TextTestRunner(verbosity=2).run(suite)
