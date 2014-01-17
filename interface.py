@@ -6,26 +6,29 @@ import sys
 
 """
 """
-__version__ = "0.8.2"
+__version__ = "0.8.3"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
-# maybe getJson should handle list and single dict returns
+# Verbose output option
 
 # Xml Namespace Mappings
 NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 'xdat': 'http://nrg.wustl.edu/xdat',
-         'cat': 'http://nrg.wustl.edu/catalog', 'nt': 'http://nrg.wustl.edu/nt'}
+         'cat': 'http://nrg.wustl.edu/catalog', 'nt': 'http://nrg.wustl.edu/nt',
+         'hcpvisit': 'http://nrg.wustl.edu/hcpvisit', 'hcp': 'http://nrg.wustl.edu/hcp'}
 
 
 class HcpInterface(object):
     def __init__(self, url=None, username=None, password=None, project=None, config=None):
         self.url = url
-        self.config = config
-        self.project = project
         self.username = username
         self.password = password
+        self.config = config
+        self.project = project
         self.subject_label = None
         self.session_label = None
+        self.experiment_label = None
+        self.experiment_id = None
         self.scan_id = None
         self.__sessionInit()
 
@@ -169,7 +172,6 @@ class HcpInterface(object):
     def getScanXmlElement(self, element):
         """ (str) --> str
         Returns scan element as a string
-        Uses Namespace mapping defined in NSMAP
         """
         if not (self.subject_label and self.session_label and self.scan_id):
             print("Subject, Session, and ScanId must be set for interface object")
@@ -182,7 +184,6 @@ class HcpInterface(object):
     def getSubjectXmlElement(self, element):
         """ (str) --> str
         Returns Subject element as a string
-        Uses Namespace mapping defined in NSMAP
         """
         if not self.subject_label:
             print("Subject must be set for interface object")
@@ -194,7 +195,6 @@ class HcpInterface(object):
     def getSessionXmlElement(self, element):
         """ (str) --> str
         Returns Session element as a string
-        Uses Namespace mapping defined in NSMAP
         """
         if not (self.subject_label and self.session_label):
             print("Subject, Session, and ScanId must be set for interface object")
@@ -204,9 +204,21 @@ class HcpInterface(object):
 
         return self.getXmlElement(element, uri)
 
+    def getExperimentXmlElement(self, element):
+        """ (str) --> str
+        Returns Experiment element as a string
+        """
+        if not self.experiment_id:
+            print("Experiment ID must be set for interface object")
+            return
+        uri = '/REST/experiments/' + self.experiment_id
+
+        return self.getXmlElement(element, uri)
+
     def getXmlElement(self, element, uri):
         """
         Helper for all Xml Element Getters
+        Uses Namespace mapping defined in NSMAP
         """
         xml = self.getXml(uri)
         et = etree.fromstring(xml)
@@ -370,6 +382,33 @@ class HcpInterface(object):
         else:
             print("++ DELETE request FAILED for " + self.url+uri)
             print("++ Status: " + str(r.status_code))
+
+#################################### Setters ##################################
+
+    def setSubjectElement(self, xsi, elem, val):
+        """ (str, str, str) --> None
+        Sets element=value at the subject level
+        """
+        uri = '/REST/projects/%s/subjects/%s?xsiType=%s&%s/%s=%s' % \
+               (self.project, self.subject_label, xsi, xsi, elem, val)
+        self.putRequest(uri)
+
+    def setExperimentElement(self, xsi, elem, val):
+        """ (str, str, str) --> None
+        Sets element=value at the subject level
+        """
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s?xsiType=%s&%s/%s=%s' % \
+               (self.project, self.subject_label, self.experiment_label, xsi, xsi, elem, val)
+        self.putRequest(uri)
+
+    def setScanElement(self, xsi, elem, val):
+        """
+        """
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s?xsiType=%s&%s/%s=%s' % \
+               (self.project, self.subject_label, self.session_label, self.scan_id, xsi, xsi, elem, val)
+        print(uri)
+        print("Not implemented")
+
 
 ############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
