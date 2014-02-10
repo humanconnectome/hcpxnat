@@ -3,10 +3,11 @@ from lxml import etree
 import ConfigParser
 import requests
 import sys
+import os
 
 """
 """
-__version__ = "0.8.3"
+__version__ = "0.8.4"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -30,6 +31,7 @@ class HcpInterface(object):
         self.experiment_label = None
         self.experiment_id = None
         self.scan_id = None
+        self.scan_resource = None
         self.__sessionInit()
 
     def __sessionInit(self):
@@ -305,6 +307,25 @@ class HcpInterface(object):
             print("Did not get any scan IDs for " + self.session_label)
         else:
             return scanIds
+
+    def subjectExists(self):
+        pass
+
+    def experimentExists(self):
+        pass
+
+    def createScanResource(self, resource):
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s' % \
+              (self.project, self.subject_label, self.session_label, self.scan_id, resource)
+
+        self.putRequest(uri)
+
+    def putScanResource(self, f):
+        fname = os.path.basename(f)
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s/files/%s' % \
+              (self.project, self.subject_label, self.session_label, self.scan_id, self.scan_resource, fname)
+
+        self.putRequest(uri, f)
 
 ################################ General Methods ##############################
     def getResponse(self, uri):
