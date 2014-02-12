@@ -308,8 +308,16 @@ class HcpInterface(object):
         else:
             return scanIds
 
-    def subjectExists(self):
-        pass
+    def subjectExists(self, sub=None):
+        if not sub and not self.subject_label:
+            print("Either the object's subject_label must be set or the sub parameter passed.")
+            return
+
+        uri = '/REST/projects/%s/subjects/%s?format=json' % (self.project, self.subject_label)
+        r = self.session.get(self.url + uri)
+        
+        return True if r.ok else False
+        #return True if self.getJson(uri) else False
 
     def experimentExists(self):
         pass
