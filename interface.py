@@ -315,7 +315,7 @@ class HcpInterface(object):
 
         uri = '/REST/projects/%s/subjects/%s?format=json' % (self.project, self.subject_label)
         r = self.session.get(self.url + uri)
-        
+
         return True if r.ok else False
         #return True if self.getJson(uri) else False
 
@@ -435,8 +435,7 @@ class HcpInterface(object):
         """
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s?xsiType=%s&%s/%s=%s' % \
                (self.project, self.subject_label, self.session_label, self.scan_id, xsi, xsi, elem, val)
-        print(uri)
-        print("Not implemented")
+        self.putRequest(uri)
 
 
 ############################### DEPRECATED Methods ############################
