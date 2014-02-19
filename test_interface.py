@@ -119,6 +119,10 @@ class TestHcpInterface(unittest.TestCase):
         sub = self.idb.getSessionSubject()
         self.assertTrue(sub == '100307')
 
+    def test_experimentExists(self):
+        self.assertTrue(self.idb.experimentExists() and not 
+                        self.idb.experimentExists('asdf'))
+
 
 if __name__ == '__main__':
     

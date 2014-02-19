@@ -250,17 +250,20 @@ class HcpInterface(object):
 ############################## Convenience Methods ############################
     def getSessionSubject(self):
         """ () --> str
-        Returns the subject label for the object's sub label or id
+        Returns the subject label for the object's session label or id
         """
         uri = '/REST/projects/%s/experiments/%s' % (self.project, self.session_label)
         json = self.getJson(uri)
 
-        try:
-            subject_label = json[2].get('data_fields').get('dcmPatientName')
-        except AttributeError:
-            print("AttributeError: Couldn't get subject label for " + self.session_label)
-        else:
+        for item in json:
+            try:
+                subject_label = item.get('data_fields').get('dcmPatientName')
+            except:
+                print("Not here")
+        if subject_label:
             return subject_label
+        else:
+            print("Couldn't get subject label for " + self.session_label)
 
     def getSessionId(self):
         """ () --> str
@@ -320,10 +323,22 @@ class HcpInterface(object):
         r = self.session.get(self.url + uri)
 
         return True if r.ok else False
-        #return True if self.getJson(uri) else False
 
-    def experimentExists(self):
-        pass
+    def experimentExists(self, exp=None):
+        if exp:
+            label = exp
+        elif self.experiment_label:
+            label = self.experiment_label
+        elif self.session_label:
+            label = self.session_label
+        else:
+            print("Either the object's session_label or experiment_label must be set or the sub parameter passed.")
+        
+        uri = '/REST/projects/%s/experiments/%s?format=json' % (self.project, label)
+        r = self.session.get(self.url + uri)
+
+        return True if r.ok else False
+
 
     def createScanResource(self, resource):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s' % \
