@@ -11,7 +11,7 @@ __version__ = "0.8.4"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
-# Verbose output option
+# Return messages instead of printing success/failure
 
 # Xml Namespace Mappings
 NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 'xdat': 'http://nrg.wustl.edu/xdat',
@@ -32,6 +32,8 @@ class HcpInterface(object):
         self.experiment_id = None
         self.scan_id = None
         self.scan_resource = None
+        self.message = None
+        self.success = True
         self.__sessionInit()
 
     def __sessionInit(self):
@@ -54,6 +56,8 @@ class HcpInterface(object):
         # Check for a successful login
         r = self.session.get(self.url + '/REST/version')
         if not r.ok:
+            self.success = False
+            self.message = "++ Connection Error\n++ Status: " + str(r.status_code)
             print("++ Connection Error")
             print("++ Status: " + str(r.status_code))
             sys.exit(-1)
@@ -82,7 +86,7 @@ class HcpInterface(object):
         else:
             print("++ JSON request failed: " + str(r.status_code))
             print("Attempted: " + self.url+uri)
-            # return False
+            self.success = False
             sys.exit(-1)
 
     # TODO
@@ -102,7 +106,6 @@ class HcpInterface(object):
             uri = '/REST/projects/' + project + '/subjects'
         else:
             uri = '/REST/subjects'
-
         return self.getJson(uri)
 
     def getSessions(self, project=None):
@@ -114,7 +117,6 @@ class HcpInterface(object):
             uri = '/REST/projects/' + project + '/experiments?xsiType=xnat:mrSessionData'
         else:
             uri = '/REST/experiments?xsiType=xnat:mrSessionData'
-
         return self.getJson(uri)
 
     def getSubjectSessions(self):
@@ -228,6 +230,7 @@ class HcpInterface(object):
             elem = et.find(element, NSMAP).text
         except AttributeError:
             print(element + " could not be found for " + uri)
+            self.success = False
             return None
         else:
             return elem
@@ -426,12 +429,15 @@ class HcpInterface(object):
         """ (str, str, str) --> None
         Sets element=value at the subject level
         """
+        if 'mrSessionData' in xsi:
+            self.experiment_label = self.session_label
         uri = '/REST/projects/%s/subjects/%s/experiments/%s?xsiType=%s&%s/%s=%s' % \
                (self.project, self.subject_label, self.experiment_label, xsi, xsi, elem, val)
         self.putRequest(uri)
 
     def setScanElement(self, xsi, elem, val):
-        """
+        """ (str, str, str) -> None
+        Sets element=value at the scan level
         """
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s?xsiType=%s&%s/%s=%s' % \
                (self.project, self.subject_label, self.session_label, self.scan_id, xsi, xsi, elem, val)
@@ -482,4 +488,4 @@ class HcpInterface(object):
             return r.json().get('ResultSet').get('Result')
         else:
             print("++ Session request failed for project " + self.project)
-###############################################################################s
+###############################################################################
