@@ -96,12 +96,20 @@ class TestHcpInterface(unittest.TestCase):
         """
         # 100307_strc session label
         sessionIdA = self.idb.getSessionId()
+        print sessionIdA
 
         self.idb.session_label = '705341_strc'
         sessionIdB = self.idb.getSessionId()
+        print sessionIdB
+
+        self.idb.project = 'NKI'
+        self.idb.session_label = '0142673'
+        sessionIdC = self.idb.getSessionId()
+        print sessionIdC
 
         self.assertTrue(sessionIdA == 'HCPIntradb_E04465' 
-                    and sessionIdB == 'HCPIntradb_E15574')
+                    and sessionIdB == 'HCPIntradb_E15574'
+                    and sessionIdC == 'HCPIntradb_E36546')
 
     def test_getSubjectId(self):
         subID = self.idb.getSubjectId()

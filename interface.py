@@ -140,6 +140,16 @@ class HcpInterface(object):
         scans = self.getJson(uri)
         return scans
 
+    def getScanResources(self):
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources' % \
+              (self.project, self.subject_label, self.session_label, self.scan_id)
+        return self.getJson(uri)
+
+    def getResourceFiles(self):
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s/files' % \
+              (self.project, self.subject_label, self.session_label, self.scan_id, self.scan_resource)
+        return self.getJson(uri)
+
 ################################## Xml Methods ################################
     def getXml(self, uri):
         """ (str) --> xml
@@ -272,18 +282,15 @@ class HcpInterface(object):
         uri = '/REST/projects/%s/experiments/%s' % (self.project, self.session_label)
         json = self.getJson(uri)
 
-        try:
-            sessionID = json[1].get('data_fields').get('id')
-        except IndexError:
+        for item in json:
             try:
-                sessionID = json[0].get('children')[0].get('items')[0].get('data_fields').get('id')
-            except IndexError, AttributeError:
-                print("IndexError OR AttributeError: Couldn't get session id for " + self.session_label)
-                return None
-            else:
-                return sessionID
+                sessionId = item.get('data_fields').get('id')
+            except:
+                print("Session ID not in this item")
+        if sessionId:
+            return sessionId
         else:
-            return sessionID
+            print("Couldn't get session ID for " + self.session_label)
 
     def getSubjectId(self):
         """ ()--> str
@@ -333,7 +340,7 @@ class HcpInterface(object):
             label = self.session_label
         else:
             print("Either the object's session_label or experiment_label must be set or the sub parameter passed.")
-        
+
         uri = '/REST/projects/%s/experiments/%s?format=json' % (self.project, label)
         r = self.session.get(self.url + uri)
 
