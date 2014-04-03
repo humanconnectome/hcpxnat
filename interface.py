@@ -7,7 +7,7 @@ import os
 
 """
 """
-__version__ = "0.8.5"
+__version__ = "0.8.6"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -346,7 +346,6 @@ class HcpInterface(object):
 
         return True if r.ok else False
 
-
     def createScanResource(self, resource):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s' % \
               (self.project, self.subject_label, self.session_label, self.scan_id, resource)
@@ -359,6 +358,13 @@ class HcpInterface(object):
               (self.project, self.subject_label, self.session_label, self.scan_id, self.scan_resource, fname)
 
         self.putRequest(uri, f)
+
+    def getUsers(self, project=None):
+        if project:
+            uri = '/REST/projects/%s/users' % (project)
+        else:
+            uri = '/REST/users'
+        return self.getJson(uri)
 
 ################################ General Methods ##############################
     def getResponse(self, uri):
