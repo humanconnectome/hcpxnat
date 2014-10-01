@@ -7,20 +7,24 @@ import os
 
 """
 """
-__version__ = "0.8.6"
+__version__ = "0.8.7"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
 # Return messages instead of printing success/failure
 
 # Xml Namespace Mappings
-NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 'xdat': 'http://nrg.wustl.edu/xdat',
-         'cat': 'http://nrg.wustl.edu/catalog', 'nt': 'http://nrg.wustl.edu/nt',
-         'hcpvisit': 'http://nrg.wustl.edu/hcpvisit', 'hcp': 'http://nrg.wustl.edu/hcp'}
+NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 
+         'xdat': 'http://nrg.wustl.edu/xdat',
+         'cat': 'http://nrg.wustl.edu/catalog', 
+         'nt': 'http://nrg.wustl.edu/nt',
+         'hcpvisit': 'http://nrg.wustl.edu/hcpvisit', 
+         'hcp': 'http://nrg.wustl.edu/hcp'}
 
 
 class HcpInterface(object):
-    def __init__(self, url=None, username=None, password=None, project=None, config=None):
+    def __init__(self, url=None, username=None, password=None, 
+                 project=None, config=None):
         self.url = url
         self.username = username
         self.password = password
@@ -57,7 +61,8 @@ class HcpInterface(object):
         r = self.session.get(self.url + '/REST/version')
         if not r.ok:
             self.success = False
-            self.message = "++ Connection Error\n++ Status: " + str(r.status_code)
+            self.message = "++ Connection Error\n++ Status: " + \
+                str(r.status_code)
             print("++ Connection Error")
             print("++ Status: " + str(r.status_code))
             sys.exit(-1)
@@ -92,12 +97,14 @@ class HcpInterface(object):
     # TODO
     def getSubjectJson(self):
         if not self.subject_label:
-            print("No subject specified. You must set the object's subject and session before calling.")
+            print("No subject specified. You must set the object's subject " + \
+                   "and session before calling.")
 
     # TODO
     def getSessionJson(self):
         if not (self.subject_label and self.session_label):
-            print("No subject specified. You must set the object's subject xxx before calling.")
+            print("No subject specified. You must set the object's " + \
+                  "subject xxx before calling.")
 
     def getSubjects(self, project=None):
         """ () --> dict
@@ -114,9 +121,20 @@ class HcpInterface(object):
         or all Sessions for the entire system if not.
         """
         if project:
-            uri = '/REST/projects/' + project + '/experiments?xsiType=xnat:mrSessionData'
+            uri = '/REST/projects/' + project + \
+                '/experiments?xsiType=xnat:mrSessionData'
         else:
             uri = '/REST/experiments?xsiType=xnat:mrSessionData'
+        return self.getJson(uri)
+
+    def getExperiments(self, project=None, xsi=None):
+        if xsi and project:
+            uri = '/REST/experiments?xsiType=' + xsi + \
+                '&project=' + self.project
+        elif xsi:
+            uri = uri = '/REST/experiments?xsiType=' + xsi
+        else:
+            uri = '/REST/experiments'
         return self.getJson(uri)
 
     def getSubjectSessions(self):
@@ -141,13 +159,16 @@ class HcpInterface(object):
         return scans
 
     def getScanResources(self):
-        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources' % \
-              (self.project, self.subject_label, self.session_label, self.scan_id)
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
+            '/scans/%s/resources' % \
+            (self.project, self.subject_label, self.session_label, self.scan_id)
         return self.getJson(uri)
 
     def getResourceFiles(self):
-        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s/files' % \
-              (self.project, self.subject_label, self.session_label, self.scan_id, self.scan_resource)
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
+            '/scans/%s/resources/%s/files' % \
+            (self.project, self.subject_label, self.session_label, 
+             self.scan_id, self.scan_resource)
         return self.getJson(uri)
 
 ################################## Xml Methods ################################
@@ -169,7 +190,8 @@ class HcpInterface(object):
     # TODO
     def getSubjectXml(self):
         if not self.subject_label:
-            msg = "No subject specified. You must set the object's subject before calling."
+            msg = "No subject specified. You must set the object's " + \
+                  "subject before calling."
             #raise InstanceVariableUnsetError(msg, self)
 
     # TODO
@@ -188,10 +210,11 @@ class HcpInterface(object):
         Returns scan element as a string
         """
         if not (self.subject_label and self.session_label and self.scan_id):
-            print("Subject, Session, and ScanId must be set for interface object")
+            print("Subject, Session, and ScanId must be set for calling object")
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s' % \
-                (self.project, self.subject_label, self.session_label, self.scan_id)
+                (self.project, self.subject_label, 
+                 self.session_label, self.scan_id)
 
         return self.getXmlElement(element, uri)
 
@@ -202,7 +225,8 @@ class HcpInterface(object):
         if not self.subject_label:
             print("Subject must be set for interface object")
             return
-        uri = '/REST/projects/%s/subjects/%s' % (self.project, self.subject_label)
+        uri = '/REST/projects/%s/subjects/%s' % \
+            (self.project, self.subject_label)
 
         return self.getXmlElement(element, uri)
 
@@ -211,7 +235,7 @@ class HcpInterface(object):
         Returns Session element as a string
         """
         if not (self.subject_label and self.session_label):
-            print("Subject, Session, and ScanId must be set for interface object")
+            print("Subject and Session must be set for calling object")
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' % \
                 (self.project, self.subject_label, self.session_label)
@@ -247,8 +271,9 @@ class HcpInterface(object):
 
     # TODO - Refactor
     def putSessionXml(self, xml, session_label):
-        url = self.url+'/REST/projects/%s/subjects/%s/experiments/%s?xsiType=xnat:mrSessionData' % \
-                   (self.project, session_label.split('_')[0], session_label)
+        url = self.url+'/REST/projects/%s/subjects/%s/experiments/%s' \
+            '?xsiType=xnat:mrSessionData' % \
+            (self.project, session_label.split('_')[0], session_label)
         #print(xml)
         print(url)
         hdrs = {'Content-Type': 'text/xml'}
@@ -262,7 +287,8 @@ class HcpInterface(object):
         """ () --> str
         Returns the subject label for the object's session label or id
         """
-        uri = '/REST/projects/%s/experiments/%s' % (self.project, self.session_label)
+        uri = '/REST/projects/%s/experiments/%s' % \
+            (self.project, self.session_label)
         json = self.getJson(uri)
 
         for item in json:
@@ -279,7 +305,8 @@ class HcpInterface(object):
         """ () --> str
         Returns the session ID for the object
         """
-        uri = '/REST/projects/%s/experiments/%s' % (self.project, self.session_label)
+        uri = '/REST/projects/%s/experiments/%s' % \
+            (self.project, self.session_label)
         json = self.getJson(uri)
 
         for item in json:
@@ -296,13 +323,15 @@ class HcpInterface(object):
         """ ()--> str
         Returns the subject ID for the object's subject_label
         """
-        uri = '/REST/projects/%s/subjects/%s' % (self.project, self.subject_label)
+        uri = '/REST/projects/%s/subjects/%s' % \
+            (self.project, self.subject_label)
         json = self.getJson(uri)
 
         try:
             subjectID = json[0].get('data_fields').get('ID')
         except AttributeError:
-            print("AttributeError: Couldn't get subject id for " + self.subject_label)
+            print("AttributeError: Couldn't get subject id for " + \
+                self.subject_label)
         else:
             return subjectID
 
@@ -323,10 +352,12 @@ class HcpInterface(object):
 
     def subjectExists(self, sub=None):
         if not sub and not self.subject_label:
-            print("Either the object's subject_label must be set or the sub parameter passed.")
+            print("Either the object's subject_label must be set or the " + \
+                  "sub parameter passed.")
             return
 
-        uri = '/REST/projects/%s/subjects/%s?format=json' % (self.project, self.subject_label)
+        uri = '/REST/projects/%s/subjects/%s?format=json' % \
+            (self.project, self.subject_label)
         r = self.session.get(self.url + uri)
 
         return True if r.ok else False
@@ -339,23 +370,29 @@ class HcpInterface(object):
         elif self.session_label:
             label = self.session_label
         else:
-            print("Either the object's session_label or experiment_label must be set or the sub parameter passed.")
+            print("Either the object's session_label or experiment_label " + \
+                  "must be set or the sub parameter passed.")
 
-        uri = '/REST/projects/%s/experiments/%s?format=json' % (self.project, label)
+        uri = '/REST/projects/%s/experiments/%s?format=json' % \
+            (self.project, label)
         r = self.session.get(self.url + uri)
 
         return True if r.ok else False
 
     def createScanResource(self, resource):
-        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s' % \
-              (self.project, self.subject_label, self.session_label, self.scan_id, resource)
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
+            '/scans/%s/resources/%s' % \
+            (self.project, self.subject_label, self.session_label, 
+             self.scan_id, resource)
 
         self.putRequest(uri)
 
     def putScanResource(self, f):
         fname = os.path.basename(f)
-        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s/resources/%s/files/%s' % \
-              (self.project, self.subject_label, self.session_label, self.scan_id, self.scan_resource, fname)
+        uri = '/REST/projects/%s/subjects/%s/experiments/' \
+            '%s/scans/%s/resources/%s/files/%s' % \
+            (self.project, self.subject_label, self.session_label, 
+             self.scan_id, self.scan_resource, fname)
 
         self.putRequest(uri, f)
 
@@ -434,7 +471,7 @@ class HcpInterface(object):
 
     def deleteRequest(self, uri):
         """ (str) --> None
-        Tries to delete the resouce specified by the uri
+        Tries to delete the resource specified by the uri
         """
         r = self.session.delete(self.url+uri)
         if r.ok:
@@ -459,16 +496,20 @@ class HcpInterface(object):
         """
         if 'mrSessionData' in xsi:
             self.experiment_label = self.session_label
-        uri = '/REST/projects/%s/subjects/%s/experiments/%s?xsiType=%s&%s/%s=%s' % \
-               (self.project, self.subject_label, self.experiment_label, xsi, xsi, elem, val)
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
+            '?xsiType=%s&%s/%s=%s' % \
+            (self.project, self.subject_label, self.experiment_label, 
+            xsi, xsi, elem, val)
         self.putRequest(uri)
 
     def setScanElement(self, xsi, elem, val):
         """ (str, str, str) -> None
         Sets element=value at the scan level
         """
-        uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s?xsiType=%s&%s/%s=%s' % \
-               (self.project, self.subject_label, self.session_label, self.scan_id, xsi, xsi, elem, val)
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
+            '/scans/%s?xsiType=%s&%s/%s=%s' % \
+            (self.project, self.subject_label, self.session_label, 
+             self.scan_id, xsi, xsi, elem, val)
         self.putRequest(uri)
 
 
