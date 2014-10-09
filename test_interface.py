@@ -10,7 +10,7 @@ class TestHcpInterface(unittest.TestCase):
         idb_config_file = os.path.join(os.path.expanduser('~'),
             '.hcpxnat_intradb.cfg')
         cdb_config_file = os.path.join(os.path.expanduser('~'),
-            '.hcpxnat_db.cfg')
+            '.hcpxnat_cdb.cfg')
         self.idb = HcpInterface(config=idb_config_file)
         self.cdb = HcpInterface(config=cdb_config_file)
         self.idb.subject_label = '100307'
@@ -40,13 +40,13 @@ class TestHcpInterface(unittest.TestCase):
         sessions = self.idb.getSessions('HCP_Phase2')
         session_labels = [s.get('label') for s in sessions]
 
-        self.assertTrue(session_labels.__len__() > 100)
+        self.assertTrue(len(session_labels) > 100)
 
     def test_getSessions_all(self):
         sessions = self.idb.getSessions()
         session_labels = [s.get('label') for s in sessions]
 
-        self.assertTrue(session_labels.__len__() > 100)
+        self.assertTrue(len(session_labels) > 100)
 
     def test_getSubjectSessions(self):
         sessions = self.idb.getSubjectSessions()
