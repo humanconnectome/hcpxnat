@@ -4,6 +4,7 @@ import ConfigParser
 import requests
 import sys
 import os
+import re
 
 """
 """
@@ -135,7 +136,7 @@ class HcpInterface(object):
         Takes a REST URI and returns a list of Json objects (python dicts).
         """
 
-        uri = self.addFormatQuery(uri,'json')
+        uri = self.addQuery(uri,format='json')
 
         #print(self.url + uri + formatString)
         r = self.get(self.url + uri)
@@ -242,7 +243,7 @@ class HcpInterface(object):
         """ (str) --> xml
         Returns utf-8 encoded string of the Xml
         """
-        uri = self.addFormatQuery(uri,'xml')
+        uri = self.addQuery(uri,format='xml')
 
         r = self.get(self.url + uri)
         return r.strip().encode('utf8')
@@ -552,21 +553,19 @@ class HcpInterface(object):
              self.scan_id, xsi, xsi, elem, val)
         self.putRequest(uri)
 
-    def addFormatQuery(self,formatType):
-        # If there are no query params, the first one needs to append a ?.
-        # If there are already query params, append an &.
-        if '?' not in uri:
-            uri += '?'
-        else:
-            uri += '&'
-
-        # Make format explicit if not already
-        formatQuery = 'format={}'.format(formatType)
-        if 'format' not in uri or formatQuery not in uri:
-            uri += formatQuery
-        else:
-            # TODO: Need to replace a format=whatever arg with format=json
-            pass
+    def addQuery(self,uri,**kwargs):
+        queries = []
+        for argName,argVal in kwargs.iteritems():
+            query = argName+'='+argVal
+            if argName not in uri or query not in uri:
+                queries.append(query)
+            else:
+                m = re.search(r'{}=(?P<val>[^&]*)(&.*)?$'.format(argName),uri)
+                if m:
+                    uri.replace(m.group('val'),argVal)
+                else:
+                    pass
+        return uri + '?' if '?' not in uri else '&' + '&'.join(queries)
 
 ############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
