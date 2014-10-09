@@ -7,10 +7,10 @@ import os
 class TestHcpInterface(unittest.TestCase):
 
     def setUp(self):
-        idb_config_file = os.path.join(os.path.expanduser('~'), 
+        idb_config_file = os.path.join(os.path.expanduser('~'),
             '.hcpxnat_intradb.cfg')
-        cdb_config_file = os.path.join(os.path.expanduser('~'), 
-            '.hcpxnat_cdb.cfg')
+        cdb_config_file = os.path.join(os.path.expanduser('~'),
+            '.hcpxnat_db.cfg')
         self.idb = HcpInterface(config=idb_config_file)
         self.cdb = HcpInterface(config=cdb_config_file)
         self.idb.subject_label = '100307'
@@ -23,16 +23,13 @@ class TestHcpInterface(unittest.TestCase):
     ## Json Tests
     def test_getJson(self):
         json_obj = self.idb.getJson('/REST/projects')
-        project_list = list()
-
-        for item in json_obj:
-            project_list.append(item.get('ID'))
+        project_list = [item.get('ID') for item in json_obj]
 
         self.assertTrue(self.idb.project in project_list)
 
     @unittest.expectedFailure
     def test_getSubjectJson(self):
-        sub_json = self.cdb.getSubjectJson('100408')
+        # sub_json = self.cdb.getSubjectJson('100408')
         self.assertTrue(False)
 
     @unittest.expectedFailure
@@ -41,28 +38,19 @@ class TestHcpInterface(unittest.TestCase):
 
     def test_getSessions_project(self):
         sessions = self.idb.getSessions('HCP_Phase2')
-        session_labels = list()
-
-        for s in sessions:
-            session_labels.append(s.get('label'))
+        session_labels = [s.get('label') for s in sessions]
 
         self.assertTrue(session_labels.__len__() > 100)
 
     def test_getSessions_all(self):
         sessions = self.idb.getSessions()
-        session_labels = list()
-
-        for s in sessions:
-            session_labels.append(s.get('label'))
+        session_labels = [s.get('label') for s in sessions]
 
         self.assertTrue(session_labels.__len__() > 100)
 
     def test_getSubjectSessions(self):
         sessions = self.idb.getSubjectSessions()
-        session_labels = list()
-
-        for s in sessions:
-            session_labels.append(s.get('label'))
+        session_labels = [s.get('label') for s in sessions]
 
         self.assertTrue('100307_strc' in session_labels)
 
@@ -98,7 +86,7 @@ class TestHcpInterface(unittest.TestCase):
         Testing two sessions since json object returned isn't always the same
         """
         # 100307_strc session label
-        sessionIdA = self.idb.getSessionId()
+        # sessionIdA = self.idb.getSessionId()
         # print sessionIdA
 
         # self.idb.session_label = '705341_strc'
@@ -111,7 +99,7 @@ class TestHcpInterface(unittest.TestCase):
         # print sessionIdC
 
         self.assertTrue(sessionIdC == 'HCPIntradb_E36546')
-        # self.assertTrue(sessionIdA == 'HCPIntradb_E04465' 
+        # self.assertTrue(sessionIdA == 'HCPIntradb_E04465'
         #             and sessionIdB == 'HCPIntradb_E15574'
         #             and sessionIdC == 'HCPIntradb_E36546')
 
@@ -132,19 +120,19 @@ class TestHcpInterface(unittest.TestCase):
         self.assertTrue(sub == '100307')
 
     def test_experimentExists(self):
-        self.assertTrue(self.idb.experimentExists() and not 
+        self.assertTrue(self.idb.experimentExists() and not
                         self.idb.experimentExists('asdf'))
 
     def test_getExperiments(self):
-        experiments = self.idb.getExperiments(project='HCP_Phase2', 
+        experiments = self.idb.getExperiments(project='HCP_Phase2',
                                               xsi='xnat:mrSessiondata')
         self.assertTrue(len(experiments) > 10)
 
 
 if __name__ == '__main__':
-    
-    all = unittest.TestLoader().loadTestsFromTestCase(TestHcpInterface)
+
+    alltests = unittest.TestLoader().loadTestsFromTestCase(TestHcpInterface)
     # fast = unittest.TestSuite()
     # fast.addTest(TestHcpInterface.test_getSessionId)
-    suite = all
+    suite = alltests
     unittest.TextTestRunner(verbosity=2).run(suite)

@@ -7,23 +7,23 @@ import os
 
 """
 """
-__version__ = "0.8.7"
+__version__ = "0.9"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
 # Return messages instead of printing success/failure
 
 # Xml Namespace Mappings
-NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat', 
+NSMAP = {'xnat': 'http://nrg.wustl.edu/xnat',
          'xdat': 'http://nrg.wustl.edu/xdat',
-         'cat': 'http://nrg.wustl.edu/catalog', 
+         'cat': 'http://nrg.wustl.edu/catalog',
          'nt': 'http://nrg.wustl.edu/nt',
-         'hcpvisit': 'http://nrg.wustl.edu/hcpvisit', 
+         'hcpvisit': 'http://nrg.wustl.edu/hcpvisit',
          'hcp': 'http://nrg.wustl.edu/hcp'}
 
 
 class HcpInterface(object):
-    def __init__(self, url=None, username=None, password=None, 
+    def __init__(self, url=None, username=None, password=None,
                  project=None, config=None):
         self.url = url
         self.username = username
@@ -58,41 +58,108 @@ class HcpInterface(object):
             self.session.verify = False
 
         # Check for a successful login
-        r = self.session.get(self.url + '/REST/version')
-        if not r.ok:
-            self.success = False
-            self.message = "++ Connection Error\n++ Status: " + \
-                str(r.status_code)
-            print("++ Connection Error")
-            print("++ Status: " + str(r.status_code))
-            sys.exit(-1)
+        self.get(self.url + '/REST/version')
+
+########################### Request Method Wrappers ###########################
+    def get(self,uri,*args,**kwargs):
+        r = self.session.get(self.url+uri,args,kwargs)
+        try:
+            r.raise_for_status()
+        except Exception as e:
+            print("GET failed for {}".format(uri))
+            if args:
+                print("Args: {}".format(args))
+            if kwargs:
+                print("Keyword args: {}".format(kwargs))
+            raise e
+        return r
+
+    def put(self,uri,*args,**kwargs):
+        """ (str, [str]) --> None
+        Takes a REST URI and optional file and makes a PUT request.
+        If a filename is passed, tries to upload the file.
+        """
+        r = self.session.put(args,kwargs)
+        try:
+            r.raise_for_status()
+        except Exception as e:
+            print("PUT failed for uri {}".format(uri))
+            if args:
+                print("Args: {}".format(args))
+            if kwargs:
+                print("Keyword args: {}".format(kwargs))
+            raise e
+        print("PUT successful for " + uri)
+
+        # return r
+
+    def post(self,uri,*args,**kwargs):
+        """ (str, [str]) --> None
+        Takes a REST URI and optional file and makes a POST request.
+        If a filename is passed, tries to upload the file.
+        """
+        r = self.session.post(args,kwargs)
+        try:
+            r.raise_for_status()
+        except Exception as e:
+            print("POST failed for uri {}".format(uri))
+            if args:
+                print("Args: {}".format(args))
+            if kwargs:
+                print("Keyword args: {}".format(kwargs))
+            raise e
+        print("POST successful for " + uri)
+
+        # return r
+
+
+    def delete(self, uri,*args,**kwargs):
+        """ (str) --> None
+        Tries to delete the resource specified by the uri
+        """
+        r = self.session.delete(self.url+uri,args,kwargs)
+        try:
+            r.raise_for_status()
+        except Exception as e:
+            print("DELETE request failed for uri {}".format(uri))
+            if args:
+                print("Args: {}".format(args))
+            if kwargs:
+                print("Keyword args: {}".format(kwargs))
+            raise e
+        print("DELETE successful for " + uri)
 
 ################################# Json Methods ################################
     def getJson(self, uri):
         """ (str) --> list
         Takes a REST URI and returns a list of Json objects (python dicts).
         """
-        # Make format explicit if not already
-        formatString = ''
-        if 'format' not in uri:
-            formatString = '&format=json' if '?' in uri else '?format=json'
+
+        uri = self.addFormatQuery(uri,'json')
 
         #print(self.url + uri + formatString)
-        r = self.session.get(self.url + uri + formatString)
-        #print(r.text)
-        if r.ok:
-            try:
-                return r.json().get('ResultSet').get('Result')
-            except AttributeError:
-                try:
-                    return r.json().get('items')
-                except AttributeError:
-                    print("Could not get a 'ResultSet' or 'items' for " + uri)
+        r = self.get(self.url + uri)
+        js = r.json()
+        if 'ResultSet' in js and 'Result' in js['ResultSet']:
+            return js['ResultSet']['Result']
+        elif 'items' in js:
+            return js['items']
         else:
-            print("++ JSON request failed: " + str(r.status_code))
-            print("Attempted: " + self.url+uri)
-            self.success = False
-            sys.exit(-1)
+            return js
+        # #print(r.text)
+        # if r.ok:
+        #     try:
+        #         return r.json().get('ResultSet').get('Result')
+        #     except AttributeError:
+        #         try:
+        #             return r.json().get('items')
+        #         except AttributeError:
+        #             print("Could not get a 'ResultSet' or 'items' for " + uri)
+        # else:
+        #     print("++ JSON request failed: " + str(r.status_code))
+        #     print("Attempted: " + self.url+uri)
+        #     self.success = False
+        #     sys.exit(-1)
 
     # TODO
     def getSubjectJson(self):
@@ -141,8 +208,7 @@ class HcpInterface(object):
         """ () --> dict
         """
         if not self.project and not self.subject_label:
-            print("Project and subject must be set for interface object")
-            sys.exit(-1)
+            sys.exit("Project and subject must be set for interface object")
         uri = '/REST/experiments?xsiType=xnat:mrSessionData' + \
             '&project=' + self.project + \
             '&subject_label=' + self.subject_label
@@ -167,25 +233,19 @@ class HcpInterface(object):
     def getResourceFiles(self):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '/scans/%s/resources/%s/files' % \
-            (self.project, self.subject_label, self.session_label, 
+            (self.project, self.subject_label, self.session_label,
              self.scan_id, self.scan_resource)
         return self.getJson(uri)
 
-################################## Xml Methods ################################
+################################# Xml Methods #################################
     def getXml(self, uri):
         """ (str) --> xml
         Returns utf-8 encoded string of the Xml
         """
-        formatString = ''
-        if 'format' not in uri:
-            formatString = '&format=xml' if '?' in uri else '?format=xml'
+        uri = self.addFormatQuery(uri,'xml')
 
-        r = self.session.get(self.url + uri + formatString)
-        if r.ok:
-            return r.text[:-1].encode('utf8')
-        else:
-            print("++ XML request failed: " + str(r.status_code))
-            print("++ Requested document: " + self.url + uri)
+        r = self.get(self.url + uri)
+        return r.strip().encode('utf8')
 
     # TODO
     def getSubjectXml(self):
@@ -213,7 +273,7 @@ class HcpInterface(object):
             print("Subject, Session, and ScanId must be set for calling object")
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s' % \
-                (self.project, self.subject_label, 
+                (self.project, self.subject_label,
                  self.session_label, self.scan_id)
 
         return self.getXmlElement(element, uri)
@@ -258,8 +318,7 @@ class HcpInterface(object):
         Helper for all Xml Element Getters
         Uses Namespace mapping defined in NSMAP
         """
-        xml = self.getXml(uri)
-        et = etree.fromstring(xml)
+        et = self.getXmlTree(uri)
         try:
             elem = et.find(element, NSMAP).text
         except AttributeError:
@@ -268,6 +327,9 @@ class HcpInterface(object):
             return None
         else:
             return elem
+
+    def getXmlTree(self,uri):
+        return etree.fromstring(self.getXml(uri))
 
     # TODO - Refactor
     def putSessionXml(self, xml, session_label):
@@ -278,11 +340,11 @@ class HcpInterface(object):
         print(url)
         hdrs = {'Content-Type': 'text/xml'}
 
-        r = self.session.put(url, data=xml, headers=hdrs)
+        r = self.put(url, data=xml, headers=hdrs)
         print(r.text)
         print(r.status_code)
 
-############################## Convenience Methods ############################
+############################# Convenience Methods #############################
     def getSessionSubject(self):
         """ () --> str
         Returns the subject label for the object's session label or id
@@ -339,16 +401,13 @@ class HcpInterface(object):
         """ () --> list
         Returns a list of scan numbers for the object's session_label
         """
-        scans = self.getSessionScans()
-        scanIds = list()
 
-        for scan in scans:
-            scanIds.append(scan.get('ID'))
+        scanIds = [scan.get('ID') for scan in self.getSessionScans()]
 
-        if not scanIds:
+        if not scanIds or len(scanIds)==0:
             print("Did not get any scan IDs for " + self.session_label)
-        else:
-            return scanIds
+
+        return scanIds
 
     def subjectExists(self, sub=None):
         if not sub and not self.subject_label:
@@ -358,9 +417,9 @@ class HcpInterface(object):
 
         uri = '/REST/projects/%s/subjects/%s?format=json' % \
             (self.project, self.subject_label)
-        r = self.session.get(self.url + uri)
+        r = self.get(self.url + uri)
 
-        return True if r.ok else False
+        return r.ok
 
     def experimentExists(self, exp=None):
         if exp:
@@ -375,14 +434,14 @@ class HcpInterface(object):
 
         uri = '/REST/projects/%s/experiments/%s?format=json' % \
             (self.project, label)
-        r = self.session.get(self.url + uri)
+        r = self.get(self.url + uri)
 
-        return True if r.ok else False
+        return r.ok
 
     def createScanResource(self, resource):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '/scans/%s/resources/%s' % \
-            (self.project, self.subject_label, self.session_label, 
+            (self.project, self.subject_label, self.session_label,
              self.scan_id, resource)
 
         self.putRequest(uri)
@@ -391,7 +450,7 @@ class HcpInterface(object):
         fname = os.path.basename(f)
         uri = '/REST/projects/%s/subjects/%s/experiments/' \
             '%s/scans/%s/resources/%s/files/%s' % \
-            (self.project, self.subject_label, self.session_label, 
+            (self.project, self.subject_label, self.session_label,
              self.scan_id, self.scan_resource, fname)
 
         self.putRequest(uri, f)
@@ -403,30 +462,25 @@ class HcpInterface(object):
             uri = '/REST/users'
         return self.getJson(uri)
 
-################################ General Methods ##############################
+############################### General Methods ###############################
     def getResponse(self, uri):
-        """
-        Returns a request object for the URI
-        """
-        r = self.session.get(self.url + uri)
-        if r.ok:
-            return r
-        else:
-            print("++ Request failed: " + str(r.status_code))
-            print("++ Requested document: " + self.url + uri)
+        return self.get(uri)
 
     def getHeaderField(self, uri, attr):
         """
         Returns only the headers for a request and ignores the body
         """
-        r = self.session.get(self.url + uri, stream=True)
-        if r.ok and r.headers[attr]:
-            return r.headers[attr]
-        elif r.ok and not r.headers[attr]:
+        r = self.get(self.url + uri, stream=True)
+        if attr not in r.headers:
             print("++ Request OK, but attribute " + attr + " does not exist")
-        else:
-            print("++ Request failed: " + str(r.status_code))
-            print("++ Requested headers for: " + self.url + uri)
+        return r.headers.get(attr,None)
+        # if r.ok and r.headers[attr]:
+        #     return r.headers[attr]
+        # elif r.ok and not r.headers[attr]:
+        #     print("++ Request OK, but attribute " + attr + " does not exist")
+        # else:
+        #     print("++ Request failed: " + str(r.status_code))
+        #     print("++ Requested headers for: " + self.url + uri)
 
     def getFile(self, uri, f):
         """ (str, str) --> file [create file handle??]
@@ -440,11 +494,12 @@ class HcpInterface(object):
 
         with open(f, 'wb') as handle:
             #r = self.session.get(self.url+uri, prefetch=True)
-            r = self.session.get(self.url+uri, stream=True)
+            r = self.get(self.url+uri, stream=True)
             for block in r.iter_content(1024):
                 if not block:
                     break
                 handle.write(block)
+        print("Done")
 
     def putRequest(self, uri, f=None):
         """ (str, [str]) --> None
@@ -453,34 +508,19 @@ class HcpInterface(object):
         """
         if f:
             files = {'file': open(f, 'rb')}
-            r = self.session.put(self.url+uri, files=files)
-            if r.ok:
-                print("PUT successful")
-                print(f + " --> " + self.url)
-            else:
-                print("++ PUT Request FAILED for " + uri)
-                print("++ Status: " + str(r.status_code))
+            r = self.put(self.url+uri, files=files)
+            print("PUT successful")
+            print(f + " --> " + self.url)
         else:
-            r = self.session.put(self.url+uri)
-            if r.ok:
-                print("PUT successful for " + uri)
-                return r
-            else:
-                print("++ PUT request FAILED for " + uri)
-                print("++ Status: " + str(r.status_code))
+            r = self.put(self.url+uri)
+            print("PUT successful for " + uri)
+
+        return r
 
     def deleteRequest(self, uri):
-        """ (str) --> None
-        Tries to delete the resource specified by the uri
-        """
-        r = self.session.delete(self.url+uri)
-        if r.ok:
-            print("DELETE successful for " + uri)
-        else:
-            print("++ DELETE request FAILED for " + self.url+uri)
-            print("++ Status: " + str(r.status_code))
+        return self.delete(uri)
 
-#################################### Setters ##################################
+################################### Setters ###################################
 
     def setSubjectElement(self, xsi, elem, val):
         """ (str, str, str) --> None
@@ -498,7 +538,7 @@ class HcpInterface(object):
             self.experiment_label = self.session_label
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '?xsiType=%s&%s/%s=%s' % \
-            (self.project, self.subject_label, self.experiment_label, 
+            (self.project, self.subject_label, self.experiment_label,
             xsi, xsi, elem, val)
         self.putRequest(uri)
 
@@ -508,10 +548,25 @@ class HcpInterface(object):
         """
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '/scans/%s?xsiType=%s&%s/%s=%s' % \
-            (self.project, self.subject_label, self.session_label, 
+            (self.project, self.subject_label, self.session_label,
              self.scan_id, xsi, xsi, elem, val)
         self.putRequest(uri)
 
+    def addFormatQuery(self,formatType):
+        # If there are no query params, the first one needs to append a ?.
+        # If there are already query params, append an &.
+        if '?' not in uri:
+            uri += '?'
+        else:
+            uri += '&'
+
+        # Make format explicit if not already
+        formatQuery = 'format={}'.format(formatType)
+        if 'format' not in uri or formatQuery not in uri:
+            uri += formatQuery
+        else:
+            # TODO: Need to replace a format=whatever arg with format=json
+            pass
 
 ############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
