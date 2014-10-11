@@ -59,34 +59,31 @@ class HcpInterface(object):
             self.session.verify = False
 
         # Check for a successful login
-        self.get(self.url + '/REST/version')
+        self.get('/REST/version')
 
 ########################### Request Method Wrappers ###########################
-    def get(self,uri,*args,**kwargs):
-        r = self.session.get(self.url+uri,args,kwargs)
+    def get(self,uri,**kwargs):
+        # print('self.url+uri={}'.format(self.url+uri))
+        r = self.session.get(self.url+uri,**kwargs)
         try:
             r.raise_for_status()
         except Exception as e:
             print("GET failed for {}".format(uri))
-            if args:
-                print("Args: {}".format(args))
             if kwargs:
                 print("Keyword args: {}".format(kwargs))
             raise e
         return r
 
-    def put(self,uri,*args,**kwargs):
+    def put(self,uri,**kwargs):
         """ (str, [str]) --> None
         Takes a REST URI and optional file and makes a PUT request.
         If a filename is passed, tries to upload the file.
         """
-        r = self.session.put(args,kwargs)
+        r = self.session.put(self.url+uri,**kwargs)
         try:
             r.raise_for_status()
         except Exception as e:
             print("PUT failed for uri {}".format(uri))
-            if args:
-                print("Args: {}".format(args))
             if kwargs:
                 print("Keyword args: {}".format(kwargs))
             raise e
@@ -94,18 +91,16 @@ class HcpInterface(object):
 
         # return r
 
-    def post(self,uri,*args,**kwargs):
+    def post(self,uri,**kwargs):
         """ (str, [str]) --> None
         Takes a REST URI and optional file and makes a POST request.
         If a filename is passed, tries to upload the file.
         """
-        r = self.session.post(args,kwargs)
+        r = self.session.post(self.url+uri, **kwargs)
         try:
             r.raise_for_status()
         except Exception as e:
             print("POST failed for uri {}".format(uri))
-            if args:
-                print("Args: {}".format(args))
             if kwargs:
                 print("Keyword args: {}".format(kwargs))
             raise e
@@ -114,17 +109,15 @@ class HcpInterface(object):
         # return r
 
 
-    def delete(self, uri,*args,**kwargs):
+    def delete(self, uri,**kwargs):
         """ (str) --> None
         Tries to delete the resource specified by the uri
         """
-        r = self.session.delete(self.url+uri,args,kwargs)
+        r = self.session.delete(self.url+uri,**kwargs)
         try:
             r.raise_for_status()
         except Exception as e:
             print("DELETE request failed for uri {}".format(uri))
-            if args:
-                print("Args: {}".format(args))
             if kwargs:
                 print("Keyword args: {}".format(kwargs))
             raise e
@@ -138,8 +131,7 @@ class HcpInterface(object):
 
         uri = self.addQuery(uri,format='json')
 
-        #print(self.url + uri + formatString)
-        r = self.get(self.url + uri)
+        r = self.get(uri)
         js = r.json()
         if 'ResultSet' in js and 'Result' in js['ResultSet']:
             return js['ResultSet']['Result']
@@ -195,15 +187,15 @@ class HcpInterface(object):
             uri = '/REST/experiments?xsiType=xnat:mrSessionData'
         return self.getJson(uri)
 
-    def getExperiments(self, project=None, xsi=None):
-        if xsi and project:
-            uri = '/REST/experiments?xsiType=' + xsi + \
-                '&project=' + self.project
-        elif xsi:
-            uri = uri = '/REST/experiments?xsiType=' + xsi
-        else:
-            uri = '/REST/experiments'
-        return self.getJson(uri)
+    def getExperiments(self, **kwargs):
+        # if xsi and project:
+        #     uri = '/REST/experiments?xsiType=' + xsi + \
+        #         '&project=' + self.project
+        # elif xsi:
+        #     uri = uri = '/REST/experiments?xsiType=' + xsi
+        # else:
+        #     uri =
+        return self.getJson(self.addQuery('/REST/experiments',**kwargs))
 
     def getSubjectSessions(self):
         """ () --> dict
@@ -245,8 +237,8 @@ class HcpInterface(object):
         """
         uri = self.addQuery(uri,format='xml')
 
-        r = self.get(self.url + uri)
-        return r.strip().encode('utf8')
+        r = self.get(uri)
+        return r.text.strip().encode('utf8')
 
     # TODO
     def getSubjectXml(self):
@@ -418,7 +410,7 @@ class HcpInterface(object):
 
         uri = '/REST/projects/%s/subjects/%s?format=json' % \
             (self.project, self.subject_label)
-        r = self.get(self.url + uri)
+        r = self.get(uri)
 
         return r.ok
 
@@ -435,9 +427,11 @@ class HcpInterface(object):
 
         uri = '/REST/projects/%s/experiments/%s?format=json' % \
             (self.project, label)
-        r = self.get(self.url + uri)
-
-        return r.ok
+        try:
+            self.get(uri)
+        except:
+            return False
+        return True
 
     def createScanResource(self, resource):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
@@ -471,7 +465,7 @@ class HcpInterface(object):
         """
         Returns only the headers for a request and ignores the body
         """
-        r = self.get(self.url + uri, stream=True)
+        r = self.get(uri, stream=True)
         if attr not in r.headers:
             print("++ Request OK, but attribute " + attr + " does not exist")
         return r.headers.get(attr,None)
@@ -495,7 +489,7 @@ class HcpInterface(object):
 
         with open(f, 'wb') as handle:
             #r = self.session.get(self.url+uri, prefetch=True)
-            r = self.get(self.url+uri, stream=True)
+            r = self.get(uri, stream=True)
             for block in r.iter_content(1024):
                 if not block:
                     break
@@ -554,8 +548,12 @@ class HcpInterface(object):
         self.putRequest(uri)
 
     def addQuery(self,uri,**kwargs):
+        if kwargs=={} or all([val==None for val in kwargs.values()]):
+            return uri
         queries = []
-        for argName,argVal in kwargs.iteritems():
+        for (argName,argVal) in kwargs.iteritems():
+            if argVal==None:
+                continue
             query = argName+'='+argVal
             if argName not in uri or query not in uri:
                 queries.append(query)
@@ -565,7 +563,10 @@ class HcpInterface(object):
                     uri.replace(m.group('val'),argVal)
                 else:
                     pass
-        return uri + '?' if '?' not in uri else '&' + '&'.join(queries)
+        if len(queries) == 0:
+            return uri
+        querySep = '?' if '?' not in uri else '&'
+        return uri + querySep + '&'.join(queries)
 
 ############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
