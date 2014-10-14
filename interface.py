@@ -1,4 +1,5 @@
 from __future__ import print_function
+from shutil import copy as fileCopy
 from lxml import etree
 import ConfigParser
 import requests
@@ -477,6 +478,61 @@ class HcpInterface(object):
         #     print("++ Request failed: " + str(r.status_code))
         #     print("++ Requested headers for: " + self.url + uri)
 
+    def getFiles(self, uri, useAbsPath=False, symlink=False):
+        if '/files' not in uri:
+            print('URI {} does not point to any files.'.format(uri))
+            return
+
+        uri = self.stripQueries(uri,'locator') # We need to control when this gets added
+
+        listOfFileDicts = self.getJson(self.addQuery(uri,format="json"))
+        if not useAbsPath:
+            self.getFilesByDownload(listOfFileDicts)
+
+        listOfFileDictsWithAbsPath = self.getJson(self.addQuery(uri,format="json",locator="absolutePath"))
+
+        ##########
+        # Sanity checks
+        if not (listOfFileDicts[0].get('URI') and listOfFileDicts[0].get('Name')):
+            print('++ Did not get "URI" and "Name" for uri {}.'.format(uri))
+            return
+        if 'absolutePath' not in listOfFileDictsWithAbsPath[0]:
+            print('++ Could not get absolutePath for uri {}.'.format(uri))
+            print('++ Attempting to download.')
+            return self.getFilesByDownload(listOfFileDicts)
+
+        ##########
+        # Set the method: copy or symlink
+        if symlink:
+            print('++ Attempting to symlink files for uri {}.'.format(uri))
+            copyOrLinkMethod = os.symlink
+            msg = "+++ Made symlink "
+        else:
+            print('++ Attempting to copy files for uri {}.'.format(uri))
+            copyOrLinkMethod = fileCopy
+            msg = "+++ Copied "
+
+        ##########
+        # Iterate through the files and use the method to get them
+        for fileDict,fileDictWithAbsPath in zip(listOfFileDicts,listOfFileDictsWithAbsPath):
+            absPath = fileDictWithAbsPath['absolutePath']
+            localPath = '/files/'.join( fileDict['URI'].split('/files/')[1:] )
+            if not localPath:
+                localPath = fileDict['Name']
+            copyOrLinkMethod(absPath,localPath)
+            print(msg + "{} --> {}".format(absPath,localPath))
+
+        print("All done!")
+
+    def getFilesByDownload(self, listOfFileDicts):
+        for fileDict in listOfFileDicts:
+            if 'URI' not in fileDict or 'Name' not in fileDict:
+                print('This method expexts a list of dicts containing "URI" and "Name" keys of files.')
+                print('Received {}'.format(fileDict))
+                return
+            else:
+                self.getFile(fileDict['URI'],fileDict['Name'])
+
     def getFile(self, uri, f):
         """ (str, str) --> file [create file handle??]
         """
@@ -567,6 +623,15 @@ class HcpInterface(object):
             return uri
         querySep = '?' if '?' not in uri else '&'
         return uri + querySep + '&'.join(queries)
+
+    def stripQueries(self, uri, *queryKeys):
+        if not queryKeys or '?' not in uri:
+            return uri.split('?')[0]
+        else:
+            root, queryStr = uri.split('?')
+            queries = [q.split('=') for q in queryStr.split('&')]
+            filteredQueries = filter(lambda (k,v): k not in queryKeys, queries)
+            return self.addQuery(root,**dict(filteredQueries))
 
 ############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
