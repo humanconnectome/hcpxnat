@@ -9,7 +9,7 @@ import re
 
 """
 """
-__version__ = "0.9"
+__version__ = "0.9.1"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -129,7 +129,6 @@ class HcpInterface(object):
         """ (str) --> list
         Takes a REST URI and returns a list of Json objects (python dicts).
         """
-
         uri = self.addQuery(uri,format='json')
 
         r = self.get(uri)
@@ -341,7 +340,7 @@ class HcpInterface(object):
 ############################# Convenience Methods #############################
     def getSessionSubject(self):
         """ () --> str
-        Returns the subject label for the object's session label or id
+        Returns the subject label for the object's session label
         """
         uri = '/REST/projects/%s/experiments/%s' % \
             (self.project, self.session_label)
@@ -374,6 +373,15 @@ class HcpInterface(object):
             return sessionId
         else:
             print("Couldn't get session ID for " + self.session_label)
+
+    def getSessionAssessors(self):
+        """ () --> dict
+        Returns all assessors for a session
+        """
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/assessors' % \
+            (self.project, self.subject_label, self.session_label)
+        print(self.url + uri)
+        return self.getJson(uri)
 
     def getSubjectId(self):
         """ ()--> str
@@ -458,7 +466,24 @@ class HcpInterface(object):
             uri = '/REST/users'
         return self.getJson(uri)
 
-############################### General Methods ###############################
+    # TODO
+    def deleteProject(self):
+        pass
+
+    # TODO
+    def deleteSubject(self):
+        pass
+
+    # TODO
+    def deleteExperiment(self):
+        pass
+
+    def deleteSessionAssessor(self, label):
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s/assessors/%s' % \
+            (self.project, self.subject_label, self.session_label, label)
+        self.deleteRequest(uri)
+
+################################ General Methods ##############################
     def getResponse(self, uri):
         return self.get(uri)
 
