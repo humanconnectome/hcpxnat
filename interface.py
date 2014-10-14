@@ -485,53 +485,73 @@ class HcpInterface(object):
 
         uri = self.stripQueries(uri,'locator') # We need to control when this gets added
 
+        ##########
+        # Get the list of file resource dicts
         listOfFileDicts = self.getJson(self.addQuery(uri,format="json"))
-        if not useAbsPath:
-            self.getFilesByDownload(listOfFileDicts)
-
-        listOfFileDictsWithAbsPath = self.getJson(self.addQuery(uri,format="json",locator="absolutePath"))
 
         ##########
-        # Sanity checks
-        if not (listOfFileDicts[0].get('URI') and listOfFileDicts[0].get('Name')):
-            print('++ Did not get "URI" and "Name" for uri {}.'.format(uri))
-            return
-        if 'absolutePath' not in listOfFileDictsWithAbsPath[0]:
-            print('++ Could not get absolutePath for uri {}.'.format(uri))
-            print('++ Attempting to download.')
-            return self.getFilesByDownload(listOfFileDicts)
-
-        ##########
-        # Set the method: copy or symlink
-        if symlink:
-            print('++ Attempting to symlink files for uri {}.'.format(uri))
-            copyOrLinkMethod = os.symlink
-            msg = "+++ Made symlink "
-        else:
-            print('++ Attempting to copy files for uri {}.'.format(uri))
-            copyOrLinkMethod = fileCopy
-            msg = "+++ Copied "
-
-        ##########
-        # Iterate through the files and use the method to get them
-        for fileDict,fileDictWithAbsPath in zip(listOfFileDicts,listOfFileDictsWithAbsPath):
-            absPath = fileDictWithAbsPath['absolutePath']
+        # The 'Name' field does not maintain the directory structure present in XNAT.
+        # Make a 'localPath' that does.
+        for fileDict in listOfFileDicts:
             localPath = '/files/'.join( fileDict['URI'].split('/files/')[1:] )
             if not localPath:
                 localPath = fileDict['Name']
-            copyOrLinkMethod(absPath,localPath)
-            print(msg + "{} --> {}".format(absPath,localPath))
+            fileDict['localPath'] = localPath
 
-        print("All done!")
+
+        if not useAbsPath:
+            return self.getFilesByDownload(listOfFileDicts)
+        else:
+            listOfFileDictsWithAbsPath = self.getJson(self.addQuery(uri,format="json",locator="absolutePath"))
+
+            ##########
+            # Sanity checks
+            if not (listOfFileDicts[0].get('URI') and listOfFileDicts[0].get('localPath')):
+                print('++ Did not find "URI" or "localPath" for uri {}.'.format(uri))
+                return
+            if 'absolutePath' not in listOfFileDictsWithAbsPath[0]:
+                print('++ Could not get absolutePath for uri {}.'.format(uri))
+                print('++ Attempting to download.')
+                return self.getFilesByDownload(listOfFileDicts)
+
+            ##########
+            # Set the method: copy or symlink
+            if symlink:
+                print('++ Attempting to symlink files for uri {}.'.format(uri))
+                copyOrLinkMethod = os.symlink
+                msg = "+++ Made symlink "
+            else:
+                print('++ Attempting to copy files for uri {}.'.format(uri))
+                copyOrLinkMethod = fileCopy
+                msg = "+++ Copied "
+
+            ##########
+            # Iterate through the files and use the method to get them
+            for fileDict,fileDictWithAbsPath in zip(listOfFileDicts,listOfFileDictsWithAbsPath):
+                absPath = fileDictWithAbsPath['absolutePath']
+                localPath = fileDict['localPath']
+                if os.access(absPath, os.R_OK):
+                    copyOrLinkMethod(absPath,localPath)
+                    print(msg + "{} --> {}".format(absPath,localPath))
+                else:
+                    print('Could not access {}.'.format(absPath,fileDict['URI']))
+                    self.getFile(fileDict['URI'],localPath)
+
+            print("All done!")
 
     def getFilesByDownload(self, listOfFileDicts):
         for fileDict in listOfFileDicts:
-            if 'URI' not in fileDict or 'Name' not in fileDict:
-                print('This method expexts a list of dicts containing "URI" and "Name" keys of files.')
-                print('Received {}'.format(fileDict))
+            if 'URI' not in fileDict:
+                print('Could not download. No URI.')
                 return
             else:
-                self.getFile(fileDict['URI'],fileDict['Name'])
+                uri = fileDict['URI']
+                localPath = fileDict.get('localPath')
+                if not localPath:
+                    localPath = fileDict.get('Name')
+                if not localPath:
+                    localPath = self.stripQueries(uri).split('/')[-1]
+                self.getFile(uri,localPath)
 
     def getFile(self, uri, f):
         """ (str, str) --> file [create file handle??]
