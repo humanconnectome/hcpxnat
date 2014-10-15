@@ -523,6 +523,9 @@ class HcpInterface(object):
                 localPath = fileDict['Name']
             fileDict['localPath'] = localPath
 
+            if not os.path.exists(os.path.dirname(localPath)):
+                os.makedirs(os.path.dirname(localPath))
+
 
         if not useAbsPath:
             return self.getFilesByDownload(listOfFileDicts)
@@ -574,8 +577,7 @@ class HcpInterface(object):
                 localPath = fileDict.get('localPath')
                 if not localPath:
                     localPath = fileDict.get('Name')
-                if not localPath:
-                    localPath = self.stripQueries(uri).split('/')[-1]
+
                 self.getFile(uri,localPath)
 
     def getFile(self, uri, f):
@@ -616,6 +618,37 @@ class HcpInterface(object):
     def deleteRequest(self, uri):
         return self.delete(uri)
 
+    def addQuery(self,uri,**kwargs):
+        if kwargs=={} or all([val==None for val in kwargs.values()]):
+            return uri
+        queries = []
+        for (argName,argVal) in kwargs.iteritems():
+            if argVal==None:
+                continue
+            query = argName+'='+argVal
+            if argName not in uri or query not in uri:
+                queries.append(query)
+            else:
+                m = re.search(r'{}=(?P<val>[^&]*)(&.*)?$'.format(argName),uri)
+                if m:
+                    uri.replace(m.group('val'),argVal)
+                else:
+                    pass
+        if len(queries) == 0:
+            return uri
+        querySep = '?' if '?' not in uri else '&'
+        return uri + querySep + '&'.join(queries)
+
+    def stripQueries(self, uri, *queryKeys):
+        if not queryKeys or '?' not in uri:
+            return uri.split('?')[0]
+        else:
+            root, queryStr = uri.split('?')
+            queries = [q.split('=') for q in queryStr.split('&')]
+            filteredQueries = filter(lambda (k,v): k not in queryKeys, queries)
+            return self.addQuery(root,**dict(filteredQueries))
+
+
 ################################### Setters ###################################
 
     def setSubjectElement(self, xsi, elem, val):
@@ -647,36 +680,6 @@ class HcpInterface(object):
             (self.project, self.subject_label, self.session_label,
              self.scan_id, xsi, xsi, elem, val)
         self.putRequest(uri)
-
-    def addQuery(self,uri,**kwargs):
-        if kwargs=={} or all([val==None for val in kwargs.values()]):
-            return uri
-        queries = []
-        for (argName,argVal) in kwargs.iteritems():
-            if argVal==None:
-                continue
-            query = argName+'='+argVal
-            if argName not in uri or query not in uri:
-                queries.append(query)
-            else:
-                m = re.search(r'{}=(?P<val>[^&]*)(&.*)?$'.format(argName),uri)
-                if m:
-                    uri.replace(m.group('val'),argVal)
-                else:
-                    pass
-        if len(queries) == 0:
-            return uri
-        querySep = '?' if '?' not in uri else '&'
-        return uri + querySep + '&'.join(queries)
-
-    def stripQueries(self, uri, *queryKeys):
-        if not queryKeys or '?' not in uri:
-            return uri.split('?')[0]
-        else:
-            root, queryStr = uri.split('?')
-            queries = [q.split('=') for q in queryStr.split('&')]
-            filteredQueries = filter(lambda (k,v): k not in queryKeys, queries)
-            return self.addQuery(root,**dict(filteredQueries))
 
 ############################### DEPRECATED Methods ############################
     def getJSON(self, uri):
