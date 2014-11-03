@@ -9,7 +9,7 @@ import re
 
 """
 """
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -90,7 +90,7 @@ class HcpInterface(object):
             raise e
         print("PUT successful for " + uri)
 
-        # return r
+        return r
 
     def post(self,uri,**kwargs):
         """ (str, [str]) --> None
@@ -108,7 +108,6 @@ class HcpInterface(object):
         print("POST successful for " + uri)
 
         # return r
-
 
     def delete(self, uri,**kwargs):
         """ (str) --> None
@@ -139,20 +138,6 @@ class HcpInterface(object):
             return js['items']
         else:
             return js
-        # #print(r.text)
-        # if r.ok:
-        #     try:
-        #         return r.json().get('ResultSet').get('Result')
-        #     except AttributeError:
-        #         try:
-        #             return r.json().get('items')
-        #         except AttributeError:
-        #             print("Could not get a 'ResultSet' or 'items' for " + uri)
-        # else:
-        #     print("++ JSON request failed: " + str(r.status_code))
-        #     print("Attempted: " + self.url+uri)
-        #     self.success = False
-        #     sys.exit(-1)
 
     # TODO
     def getSubjectJson(self):
@@ -324,16 +309,19 @@ class HcpInterface(object):
     def getXmlTree(self,uri):
         return etree.fromstring(self.getXml(uri))
 
+    def putXml(self, uri, xml):
+        hdrs = {'Content-Type': 'text/xml'}
+        self.put(uri, data=xml, headers=hdrs)
+
     # TODO - Refactor
-    def putSessionXml(self, xml, session_label):
-        url = self.url+'/REST/projects/%s/subjects/%s/experiments/%s' \
+    def putSessionXml(self, session_label, xml):
+        subject_label = self.getSessionSubject()
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '?xsiType=xnat:mrSessionData' % \
-            (self.project, session_label.split('_')[0], session_label)
-        #print(xml)
-        print(url)
+            (self.project, subject_label, session_label)
         hdrs = {'Content-Type': 'text/xml'}
 
-        r = self.put(url, data=xml, headers=hdrs)
+        r = self.put(uri, data=xml, headers=hdrs)
         print(r.text)
         print(r.status_code)
 
@@ -599,20 +587,25 @@ class HcpInterface(object):
                 handle.write(block)
         print("Done")
 
+    def putFile(self, uri, f):
+        """
+        Puts file f to specified uri
+        """
+        files = {'file': open(f, 'rb')}
+        self.put(uri, files=files)
+        print(f + " --> " + self.url)
+
     def putRequest(self, uri, f=None):
-        """ (str, [str]) --> None
+        """ (str, [str]) --> requests.Response
         Takes a REST URI and optional file and makes a PUT request.
         If a filename is passed, tries to upload the file.
         """
         if f:
             files = {'file': open(f, 'rb')}
-            r = self.put(self.url+uri, files=files)
-            print("PUT successful")
+            r = self.put(uri, files=files)
             print(f + " --> " + self.url)
         else:
-            r = self.put(self.url+uri)
-            print("PUT successful for " + uri)
-
+            r = self.put(uri)
         return r
 
     def deleteRequest(self, uri):
@@ -647,7 +640,6 @@ class HcpInterface(object):
             queries = [q.split('=') for q in queryStr.split('&')]
             filteredQueries = filter(lambda (k,v): k not in queryKeys, queries)
             return self.addQuery(root,**dict(filteredQueries))
-
 
 ################################### Setters ###################################
 
