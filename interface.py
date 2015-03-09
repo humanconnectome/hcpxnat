@@ -9,7 +9,7 @@ import re
 
 """
 """
-__version__ = "0.9.2"
+__version__ = "0.9.3"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -37,7 +37,7 @@ class HcpInterface(object):
         self.experiment_label = None
         self.experiment_id = None
         self.scan_id = None
-        self.scan_resource = None
+        self.resource_label = None
         self.message = None
         self.success = True
         self.__sessionInit()
@@ -208,11 +208,19 @@ class HcpInterface(object):
             (self.project, self.subject_label, self.session_label, self.scan_id)
         return self.getJson(uri)
 
+    def getScanResourceDate(self):
+        uri ='/REST/projects/%s/subjects/%s/experiments/%s' \
+             '/scans/%s/resources/%s' % \
+             (self.project, self.subject_label, self.session_label, \
+              self.scan_id, self.resource_label)
+        return self.getXml(uri)
+        #return uri
+
     def getResourceFiles(self):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '/scans/%s/resources/%s/files' % \
             (self.project, self.subject_label, self.session_label,
-             self.scan_id, self.scan_resource)
+             self.scan_id, self.resource_label)
         return self.getJson(uri)
 
 ################################# Xml Methods #################################
@@ -443,7 +451,7 @@ class HcpInterface(object):
         uri = '/REST/projects/%s/subjects/%s/experiments/' \
             '%s/scans/%s/resources/%s/files/%s' % \
             (self.project, self.subject_label, self.session_label,
-             self.scan_id, self.scan_resource, fname)
+             self.scan_id, self.resource_label, fname)
 
         self.putRequest(uri, f)
 
