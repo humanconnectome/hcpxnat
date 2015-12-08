@@ -9,7 +9,7 @@ import re
 
 """
 """
-__version__ = "0.9.3"
+__version__ = "0.9.4"
 __author__ = "Michael Hileman"
 
 ### To-Do: ###
@@ -344,11 +344,16 @@ class HcpInterface(object):
 
         for item in json:
             try:
+                # Sometimes the Subject label is the dcmPatientName, 
+                # sometimes the dcmPatientId
                 subject_label = item.get('data_fields').get('dcmPatientName')
+                if subject_label and not self.subjectExists(subject_label):
+                    subject_label = item.get('data_fields').get('dcmPatientId')
             except:
                 print("Not here")
+
         if subject_label:
-            return subject_label
+            return subject_label        
         else:
             print("Couldn't get subject label for " + self.session_label)
 
@@ -408,16 +413,21 @@ class HcpInterface(object):
         return scanIds
 
     def subjectExists(self, sub=None):
-        if not sub and not self.subject_label:
+        if sub:
+            label = sub
+        elif self.subject_label:
+            label = self.subject_label
+        else:
             print("Either the object's subject_label must be set or the " + \
                   "sub parameter passed.")
-            return
 
         uri = '/REST/projects/%s/subjects/%s?format=json' % \
-            (self.project, self.subject_label)
-        r = self.get(uri)
-
-        return r.ok
+            (self.project, label)
+        try:
+            self.get(uri)
+        except:
+            return False
+        return True
 
     def experimentExists(self, exp=None):
         if exp:

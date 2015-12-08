@@ -116,8 +116,15 @@ class TestIDBInterface(unittest.TestCase):
         self.assertTrue(ids.__len__() > 5)
 
     def test_getSessionSubject(self):
-        sub = self.idb.getSessionSubject()
-        self.assertTrue(sub == '100307')
+        self.idb.project = 'PDSIII'
+        self.idb.session_label = '151110_L120' # Works
+        sub1 = self.idb.getSessionSubject()
+
+        self.idb.session_label = '151021_L258' # Not working
+        sub2 = self.idb.getSessionSubject()
+
+        self.assertTrue(sub1 == 'L120'
+                    and sub2 == 'L258')
 
     def test_experimentExists(self):
         self.assertTrue(self.idb.experimentExists() and not
