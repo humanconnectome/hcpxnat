@@ -120,11 +120,17 @@ class TestIDBInterface(unittest.TestCase):
         self.idb.session_label = '151110_L120' # Works
         sub1 = self.idb.getSessionSubject()
 
-        self.idb.session_label = '151021_L258' # Not working
+        self.idb.session_label = '151021_L258' # Works
         sub2 = self.idb.getSessionSubject()
 
+        self.idb.project = 'DMC_Phase1a' # Doesn't
+        self.idb.session_label = 'SK105_TEST'
+        sub3 = self.idb.getSessionSubject()
+        print sub3
+
         self.assertTrue(sub1 == 'L120'
-                    and sub2 == 'L258')
+                    and sub2 == 'L258'
+                    and sub3 == 'Sk105')
 
     def test_experimentExists(self):
         self.assertTrue(self.idb.experimentExists() and not
@@ -262,10 +268,10 @@ class TestCDBInterface(unittest.TestCase):
 if __name__ == '__main__':
 
     # alltests = unittest.TestLoader().loadTestsFromTestCase(TestHcpInterface)
-    # fast = unittest.TestSuite()
-    # fast.addTest(TestHcpInterface.test_getSessionId)
+    #fast = unittest.TestSuite()
+    #fast.addTest(TestIDBInterface.test_getSessionSubject)
     # suite = alltests
     idbSuite = unittest.TestLoader().loadTestsFromTestCase(TestIDBInterface)
-    cdbSuite = unittest.TestLoader().loadTestsFromTestCase(TestCDBInterface)
+    #cdbSuite = unittest.TestLoader().loadTestsFromTestCase(TestCDBInterface)
     unittest.TextTestRunner(verbosity=2).run(idbSuite)
-    unittest.TextTestRunner(verbosity=2).run(cdbSuite)
+    #unittest.TextTestRunner(verbosity=2).run(cdbSuite)

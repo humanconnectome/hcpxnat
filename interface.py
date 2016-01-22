@@ -9,7 +9,7 @@ import re
 
 """
 """
-__version__ = "0.9.4"
+__version__ = "0.9.5"
 __author__ = "Michael Hileman"
 
 requests.packages.urllib3.disable_warnings()
@@ -347,18 +347,33 @@ class HcpInterface(object):
 
         for item in json:
             try:
-                # Sometimes the Subject label is the dcmPatientName, 
+                # Sometimes the Subject label is the dcmPatientName,
                 # sometimes the dcmPatientId
                 subject_label = item.get('data_fields').get('dcmPatientName')
+
                 if subject_label and not self.subjectExists(subject_label):
                     subject_label = item.get('data_fields').get('dcmPatientId')
             except:
                 print("Not here")
 
-        if subject_label:
+        if self.subjectExists(subject_label):
             return subject_label
-        else:
-            print("Couldn't get subject label for " + self.session_label)
+
+        # It's possible neither dcm header is correct
+        # Try splitting the session label and different cases
+        # as last ditch effort
+        split_session_label = self.session_label.split('_')[0]
+
+        if self.subjectExists(split_session_label):
+            return split_session_label
+        if self.subjectExists(split_session_label.upper()):
+            return split_session_label.upper()
+        if self.subjectExists(split_session_label.lower()):
+            return split_session_label.lower()
+        if self.subjectExists(split_session_label.title()):
+            return split_session_label.title()
+
+        print("Couldn't get subject label for " + self.session_label)
 
     def getSessionId(self):
         """ () --> str
