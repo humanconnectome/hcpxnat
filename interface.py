@@ -12,6 +12,8 @@ import re
 __version__ = "0.9.4"
 __author__ = "Michael Hileman"
 
+requests.packages.urllib3.disable_warnings()
+
 ### To-Do: ###
 # Return messages instead of printing success/failure
 
@@ -63,9 +65,9 @@ class HcpInterface(object):
         self.get('/REST/version')
 
 ########################### Request Method Wrappers ###########################
-    def get(self,uri,**kwargs):
+    def get(self, uri, **kwargs):
         # print('self.url+uri={}'.format(self.url+uri))
-        r = self.session.get(self.url+uri,**kwargs)
+        r = self.session.get(self.url+uri, **kwargs)
         try:
             r.raise_for_status()
         except Exception as e:
@@ -75,12 +77,12 @@ class HcpInterface(object):
             raise e
         return r
 
-    def put(self,uri,**kwargs):
+    def put(self, uri, **kwargs):
         """ (str, [str]) --> None
         Takes a REST URI and optional file and makes a PUT request.
         If a filename is passed, tries to upload the file.
         """
-        r = self.session.put(self.url+uri,**kwargs)
+        r = self.session.put(self.url+uri, **kwargs)
         try:
             r.raise_for_status()
         except Exception as e:
@@ -92,7 +94,7 @@ class HcpInterface(object):
 
         return r
 
-    def post(self,uri,**kwargs):
+    def post(self, uri, **kwargs):
         """ (str, [str]) --> None
         Takes a REST URI and optional file and makes a POST request.
         If a filename is passed, tries to upload the file.
@@ -109,11 +111,11 @@ class HcpInterface(object):
 
         # return r
 
-    def delete(self, uri,**kwargs):
+    def delete(self, uri, **kwargs):
         """ (str) --> None
         Tries to delete the resource specified by the uri
         """
-        r = self.session.delete(self.url+uri,**kwargs)
+        r = self.session.delete(self.url+uri, **kwargs)
         try:
             r.raise_for_status()
         except Exception as e:
@@ -128,7 +130,7 @@ class HcpInterface(object):
         """ (str) --> list
         Takes a REST URI and returns a list of Json objects (python dicts).
         """
-        uri = self.addQuery(uri,format='json')
+        uri = self.addQuery(uri, format='json')
 
         r = self.get(uri)
         js = r.json()
@@ -142,13 +144,13 @@ class HcpInterface(object):
     # TODO
     def getSubjectJson(self):
         if not self.subject_label:
-            print("No subject specified. You must set the object's subject " + \
-                   "and session before calling.")
+            print("No subject specified. You must set the object's subject " +
+                  "and session before calling.")
 
     # TODO
     def getSessionJson(self):
         if not (self.subject_label and self.session_label):
-            print("No subject specified. You must set the object's " + \
+            print("No subject specified. You must set the object's " +
                   "subject xxx before calling.")
 
     def getSubjects(self, project=None):
@@ -180,7 +182,7 @@ class HcpInterface(object):
         #     uri = uri = '/REST/experiments?xsiType=' + xsi
         # else:
         #     uri =
-        return self.getJson(self.addQuery('/REST/experiments',**kwargs))
+        return self.getJson(self.addQuery('/REST/experiments', **kwargs))
 
     def getSubjectSessions(self):
         """ () --> dict
@@ -205,16 +207,17 @@ class HcpInterface(object):
     def getScanResources(self):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '/scans/%s/resources' % \
-            (self.project, self.subject_label, self.session_label, self.scan_id)
+            (self.project, self.subject_label,
+             self.session_label, self.scan_id)
         return self.getJson(uri)
 
     def getScanResourceDate(self):
-        uri ='/REST/projects/%s/subjects/%s/experiments/%s' \
-             '/scans/%s/resources/%s' % \
-             (self.project, self.subject_label, self.session_label, \
-              self.scan_id, self.resource_label)
+        uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
+              '/scans/%s/resources/%s' % \
+              (self.project, self.subject_label, self.session_label,
+               self.scan_id, self.resource_label)
         return self.getXml(uri)
-        #return uri
+        # return uri
 
     def getResourceFiles(self):
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
@@ -228,7 +231,7 @@ class HcpInterface(object):
         """ (str) --> xml
         Returns utf-8 encoded string of the Xml
         """
-        uri = self.addQuery(uri,format='xml')
+        uri = self.addQuery(uri, format='xml')
 
         r = self.get(uri)
         return r.text.strip().encode('utf8')
@@ -238,7 +241,7 @@ class HcpInterface(object):
         if not self.subject_label:
             msg = "No subject specified. You must set the object's " + \
                   "subject before calling."
-            #raise InstanceVariableUnsetError(msg, self)
+            # raise InstanceVariableUnsetError(msg, self)
 
     # TODO
     def getSessionXml(self):
@@ -259,8 +262,8 @@ class HcpInterface(object):
             print("Subject, Session, and ScanId must be set for calling object")
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s/scans/%s' % \
-                (self.project, self.subject_label,
-                 self.session_label, self.scan_id)
+            (self.project, self.subject_label,
+             self.session_label, self.scan_id)
 
         return self.getXmlElement(element, uri)
 
@@ -284,7 +287,7 @@ class HcpInterface(object):
             print("Subject and Session must be set for calling object")
             return
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' % \
-                (self.project, self.subject_label, self.session_label)
+            (self.project, self.subject_label, self.session_label)
 
         return self.getXmlElement(element, uri)
 
@@ -314,7 +317,7 @@ class HcpInterface(object):
         else:
             return elem
 
-    def getXmlTree(self,uri):
+    def getXmlTree(self, uri):
         return etree.fromstring(self.getXml(uri))
 
     def putXml(self, uri, xml):
@@ -353,7 +356,7 @@ class HcpInterface(object):
                 print("Not here")
 
         if subject_label:
-            return subject_label        
+            return subject_label
         else:
             print("Couldn't get subject label for " + self.session_label)
 
@@ -395,8 +398,8 @@ class HcpInterface(object):
         try:
             subjectID = json[0].get('data_fields').get('ID')
         except AttributeError:
-            print("AttributeError: Couldn't get subject id for " + \
-                self.subject_label)
+            print("AttributeError: Couldn't get subject id for " +
+                  self.subject_label)
         else:
             return subjectID
 
@@ -407,10 +410,28 @@ class HcpInterface(object):
 
         scanIds = [scan.get('ID') for scan in self.getSessionScans()]
 
-        if not scanIds or len(scanIds)==0:
+        if not scanIds or len(scanIds) == 0:
             print("Did not get any scan IDs for " + self.session_label)
 
         return scanIds
+
+    def projectExists(self, proj=None):
+        if proj:
+            label = proj
+        elif self.project:
+            label = self.project
+        else:
+            print("Either the object's project must be set or the project " +
+                  "parameter passed")
+            return
+
+        uri = '/REST/projects/{p}'.format(p=label)
+
+        try:
+            self.get(uri)
+        except:
+            return False
+        return True
 
     def subjectExists(self, sub=None):
         if sub:
@@ -423,6 +444,7 @@ class HcpInterface(object):
 
         uri = '/REST/projects/%s/subjects/%s?format=json' % \
             (self.project, label)
+
         try:
             self.get(uri)
         except:
@@ -437,7 +459,7 @@ class HcpInterface(object):
         elif self.session_label:
             label = self.session_label
         else:
-            print("Either the object's session_label or experiment_label " + \
+            print("Either the object's session_label or experiment_label " +
                   "must be set or the sub parameter passed.")
 
         uri = '/REST/projects/%s/experiments/%s?format=json' % \
@@ -532,16 +554,19 @@ class HcpInterface(object):
             if not os.path.exists(os.path.dirname(localPath)):
                 os.makedirs(os.path.dirname(localPath))
 
-
         if not useAbsPath:
             return self.getFilesByDownload(listOfFileDicts)
         else:
-            listOfFileDictsWithAbsPath = self.getJson(self.addQuery(uri,format="json",locator="absolutePath"))
+            listOfFileDictsWithAbsPath = \
+                self.getJson(self.addQuery(uri, format="json",
+                             locator="absolutePath"))
 
             ##########
             # Sanity checks
-            if not (listOfFileDicts[0].get('URI') and listOfFileDicts[0].get('localPath')):
-                print('++ Did not find "URI" or "localPath" for uri {}.'.format(uri))
+            if not (listOfFileDicts[0].get('URI') and
+                    listOfFileDicts[0].get('localPath')):
+                print('++ Did not find "URI" or "localPath" for uri {}.'
+                      .format(uri))
                 return
             if 'absolutePath' not in listOfFileDictsWithAbsPath[0]:
                 print('++ Could not get absolutePath for uri {}.'.format(uri))
@@ -561,15 +586,16 @@ class HcpInterface(object):
 
             ##########
             # Iterate through the files and use the method to get them
-            for fileDict,fileDictWithAbsPath in zip(listOfFileDicts,listOfFileDictsWithAbsPath):
+            for fileDict, fileDictWithAbsPath in zip(listOfFileDicts, listOfFileDictsWithAbsPath):
                 absPath = fileDictWithAbsPath['absolutePath']
                 localPath = fileDict['localPath']
                 if os.access(absPath, os.R_OK):
-                    copyOrLinkMethod(absPath,localPath)
-                    print(msg + "{} --> {}".format(absPath,localPath))
+                    copyOrLinkMethod(absPath, localPath)
+                    print(msg + "{} --> {}".format(absPath, localPath))
                 else:
-                    print('Could not access {}.'.format(absPath,fileDict['URI']))
-                    self.getFile(fileDict['URI'],localPath)
+                    print('Could not access {}.'
+                          .format(absPath, fileDict['URI']))
+                    self.getFile(fileDict['URI'], localPath)
 
             print("All done!")
 
@@ -584,7 +610,7 @@ class HcpInterface(object):
                 if not localPath:
                     localPath = fileDict.get('Name')
 
-                self.getFile(uri,localPath)
+                self.getFile(uri, localPath)
 
     def getFile(self, uri, f):
         """ (str, str) --> file [create file handle??]
@@ -597,7 +623,7 @@ class HcpInterface(object):
         print(uri + " --> " + f)
 
         with open(f, 'wb') as handle:
-            #r = self.session.get(self.url+uri, prefetch=True)
+            # r = self.session.get(self.url+uri, prefetch=True)
             r = self.get(uri, stream=True)
             for block in r.iter_content(1024):
                 if not block:
@@ -629,20 +655,20 @@ class HcpInterface(object):
     def deleteRequest(self, uri):
         return self.delete(uri)
 
-    def addQuery(self,uri,**kwargs):
-        if kwargs=={} or all([val==None for val in kwargs.values()]):
+    def addQuery(self, uri, **kwargs):
+        if kwargs == {} or all([val is None for val in kwargs.values()]):
             return uri
         queries = []
-        for (argName,argVal) in kwargs.iteritems():
-            if argVal==None:
+        for (argName, argVal) in kwargs.iteritems():
+            if argVal is None:
                 continue
             query = argName+'='+argVal
             if argName not in uri or query not in uri:
                 queries.append(query)
             else:
-                m = re.search(r'{}=(?P<val>[^&]*)(&.*)?$'.format(argName),uri)
+                m = re.search(r'{}=(?P<val>[^&]*)(&.*)?$'.format(argName), uri)
                 if m:
-                    uri.replace(m.group('val'),argVal)
+                    uri.replace(m.group('val'), argVal)
                 else:
                     pass
         if len(queries) == 0:
@@ -656,8 +682,9 @@ class HcpInterface(object):
         else:
             root, queryStr = uri.split('?')
             queries = [q.split('=') for q in queryStr.split('&')]
-            filteredQueries = filter(lambda (k,v): k not in queryKeys, queries)
-            return self.addQuery(root,**dict(filteredQueries))
+            filteredQueries = \
+                filter(lambda (k, v): k not in queryKeys, queries)
+            return self.addQuery(root, **dict(filteredQueries))
 
 ################################### Setters ###################################
 
@@ -666,19 +693,19 @@ class HcpInterface(object):
         Sets element=value at the subject level
         """
         uri = '/REST/projects/%s/subjects/%s?xsiType=%s&%s/%s=%s' % \
-               (self.project, self.subject_label, xsi, xsi, elem, val)
+            (self.project, self.subject_label, xsi, xsi, elem, val)
         self.putRequest(uri)
 
     def setExperimentElement(self, xsi, elem, val):
         """ (str, str, str) --> None
-        Sets element=value at the subject level
+        Sets element=value at the experiment level
         """
         if 'mrSessionData' in xsi:
             self.experiment_label = self.session_label
         uri = '/REST/projects/%s/subjects/%s/experiments/%s' \
             '?xsiType=%s&%s/%s=%s' % \
             (self.project, self.subject_label, self.experiment_label,
-            xsi, xsi, elem, val)
+             xsi, xsi, elem, val)
         self.putRequest(uri)
 
     def setScanElement(self, xsi, elem, val):
@@ -718,7 +745,7 @@ class HcpInterface(object):
         else:
             print("++ XML request failed: " + str(r.status_code))
             print("++ Requested document: " + self.url + uri)
-            #sys.exit(-1)
+            # sys.exit(-1)
 
     def getProjectSessions(self):
         """ () --> dict
