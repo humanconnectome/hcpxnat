@@ -9,10 +9,8 @@ import re
 
 """
 """
-__version__ = "0.9.5"
+__version__ = "0.9.6"
 __author__ = "Michael Hileman"
-
-requests.packages.urllib3.disable_warnings()
 
 ### To-Do: ###
 # Return messages instead of printing success/failure
@@ -62,7 +60,7 @@ class HcpInterface(object):
             self.session.verify = False
 
         # Check for a successful login
-        self.get('/REST/version')
+        self.get('/REST/JSESSIONID')
 
 ########################### Request Method Wrappers ###########################
     def get(self, uri, **kwargs):
