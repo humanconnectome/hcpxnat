@@ -1,11 +1,14 @@
 from __future__ import print_function
 from shutil import copy as fileCopy
 from lxml import etree
-import ConfigParser
 import requests
 import sys
 import os
 import re
+try:
+    import ConfigParser
+except ImportError as e:
+    import configparser
 
 """
 """
@@ -696,7 +699,7 @@ class HcpInterface(object):
             root, queryStr = uri.split('?')
             queries = [q.split('=') for q in queryStr.split('&')]
             filteredQueries = \
-                filter(lambda (k, v): k not in queryKeys, queries)
+                filter(lambda k, v: k not in queryKeys, queries)
             return self.addQuery(root, **dict(filteredQueries))
 
 ################################### Setters ###################################
