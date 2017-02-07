@@ -1,6 +1,7 @@
 from __future__ import print_function
 from shutil import copy as fileCopy
 from lxml import etree
+import grequests
 import requests
 import sys
 import os
@@ -562,7 +563,7 @@ class HcpInterface(object):
         # The 'Name' field does not maintain the directory structure present in XNAT.
         # Make a 'localPath' that does.
         for fileDict in listOfFileDicts:
-            localPath = '/files/'.join( fileDict['URI'].split('/files/')[1:] )
+            localPath = os.path.join('files', fileDict['URI'].split('/files/')[1])
             if not localPath:
                 localPath = fileDict['Name']
             fileDict['localPath'] = localPath
@@ -635,8 +636,8 @@ class HcpInterface(object):
             print("You must specifiy a URI and file name")
             return
 
-        print("Downloading from " + self.url + "...")
-        print(uri + " --> " + f)
+        # print("Downloading from " + self.url + "...")
+        # print(uri + " --> " + f)
 
         with open(f, 'wb') as handle:
             # r = self.session.get(self.url+uri, prefetch=True)
@@ -645,7 +646,17 @@ class HcpInterface(object):
                 if not block:
                     break
                 handle.write(block)
-        print("Done")
+        # print("Done")
+
+    def getFilesAsync(self, uri):
+        filesDict = self.getJson(uri)
+        urls = []
+
+        for f in filesDict:
+            urls.append(self.url + f['URI'])
+
+        rs = [grequests.get(u) for u  in urls]
+        grequests.map(rs)
 
     def putFile(self, uri, f):
         """
