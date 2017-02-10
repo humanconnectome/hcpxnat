@@ -52,7 +52,8 @@ class HcpInterface(object):
             self.username = cfg.get('auth', 'username')
             self.password = cfg.get('auth', 'password')
             self.url = cfg.get('site', 'hostname')
-            self.project = cfg.get('site', 'project')
+            # Requiring project doesn't make sense in all contexts
+            # self.project = cfg.get('site', 'project')
 
         self.session = requests.Session()
         self.session.auth = (self.username, self.password)
