@@ -13,6 +13,7 @@ class TestIDBInterface(unittest.TestCase):
             # '.hcpxnat_cdb.cfg')
         self.idb = HcpInterface(config=idb_config_file)
         # self.cdb = HcpInterface(config=cdb_config_file)
+        self.idb.project = 'HCP_Phase2'
         self.idb.subject_label = '100307'
         self.idb.session_label = '100307_strc'
         self.idb.scan_id = '19'

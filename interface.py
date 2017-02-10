@@ -1,7 +1,6 @@
 from __future__ import print_function
 from shutil import copy as fileCopy
 from lxml import etree
-import grequests
 import requests
 import sys
 import os
@@ -648,16 +647,6 @@ class HcpInterface(object):
                     break
                 handle.write(block)
         # print("Done")
-
-    def getFilesAsync(self, uri):
-        filesDict = self.getJson(uri)
-        urls = []
-
-        for f in filesDict:
-            urls.append(self.url + f['URI'])
-
-        rs = [grequests.get(u) for u  in urls]
-        grequests.map(rs)
 
     def putFile(self, uri, f):
         """
