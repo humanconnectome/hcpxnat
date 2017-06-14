@@ -10,6 +10,10 @@ try:
 except ImportError as e:
     import configparser
 
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+
 """
 """
 __version__ = "0.9.6"

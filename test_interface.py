@@ -127,11 +127,16 @@ class TestIDBInterface(unittest.TestCase):
         self.idb.project = 'DMC_Phase1a' # Doesn't
         self.idb.session_label = 'SK105_TEST'
         sub3 = self.idb.getSessionSubject()
-        print sub3
+
+        self.idb.project = 'CCF_HCA_ITK'
+        self.idb.session_label = 'HCA6290368_V1_A'
+        sub4 = self.idb.getSessionSubject()
+        print sub4
 
         self.assertTrue(sub1 == 'L120'
                     and sub2 == 'L258'
-                    and sub3 == 'Sk105')
+                    and sub3 == 'Sk105'
+                    and sub4 == 'HCA6290368')
 
     def test_experimentExists(self):
         self.assertTrue(self.idb.experimentExists() and not
