@@ -67,6 +67,13 @@ class HcpInterface(object):
         else:
             self.session.verify = False
 
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=100, pool_maxsize=100)
+        adapter_s = requests.adapters.HTTPAdapter(
+            pool_connections=100, pool_maxsize=100)
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter_s)
+
         # Check for a successful login
         self.get('/REST/JSESSIONID')
 
@@ -378,6 +385,10 @@ class HcpInterface(object):
             return split_session_label.lower()
         if self.subjectExists(split_session_label.title()):
             return split_session_label.title()
+        
+        split_session_label = self.session_label.split('-')[0]
+        if self.subjectExists(split_session_label):
+            return split_session_label
 
         print("Couldn't get subject label for " + self.session_label)
 
