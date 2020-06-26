@@ -369,7 +369,7 @@ class HcpInterface(object):
             except:
                 print("Not here")
 
-        if self.subjectExists(subject_label):
+        if subject_label != None and self.subjectExists(subject_label):
             return subject_label
 
         # It's possible neither dcm header is correct
@@ -389,6 +389,16 @@ class HcpInterface(object):
         split_session_label = self.session_label.split('-')[0]
         if self.subjectExists(split_session_label):
             return split_session_label
+
+        for item in json:
+            try:
+                # Otherwise, let's use the subject ID
+                subject_label = item.get('data_fields').get('subject_ID')
+            except:
+                print("Not here")
+
+        if subject_label != None and self.subjectExists(subject_label):
+            return subject_label
 
         print("Couldn't get subject label for " + self.session_label)
 
