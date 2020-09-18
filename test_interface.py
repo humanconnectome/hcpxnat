@@ -136,7 +136,7 @@ class TestIDBInterface(unittest.TestCase):
         self.idb.project = 'CCF_HCA_ITK'
         self.idb.session_label = 'HCA6290368_V1_A'
         sub4 = self.idb.getSessionSubject()
-        print sub4
+        print(sub4)
 
         self.assertTrue(sub1 == 'L120'
                     and sub2 == 'L258'

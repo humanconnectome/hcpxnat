@@ -74,8 +74,16 @@ class HcpInterface(object):
         self.session.mount('http://', adapter)
         self.session.mount('https://', adapter_s)
 
-        # Check for a successful login
-        self.get('/REST/JSESSIONID')
+        # NOTE:  The sessions authenticated with requests have not been persisting with the latest
+        # system architecture.  I belive this is due to some active manipulation of the JSESSIONID
+        # cookies.  We fix that by replacing the "auth" authenticated session with a session that
+        # just sets a JSESSIONID
+        # Get JSESSIONID from session.  Use it to authorize a new session.
+        SESSID=self.get('/REST/JSESSIONID')
+        # Generate new session just setting JSESSIONID
+        self.session = requests.Session()
+        self.session.cookies.clear()
+        self.session.cookies['JSESSIONID'] = str(SESSID.content.decode())
 
 ########################### Request Method Wrappers ###########################
     def get(self, uri, **kwargs):
@@ -701,7 +709,7 @@ class HcpInterface(object):
         if kwargs == {} or all([val is None for val in kwargs.values()]):
             return uri
         queries = []
-        for (argName, argVal) in kwargs.iteritems():
+        for (argName, argVal) in kwargs.items():
             if argVal is None:
                 continue
             query = argName+'='+argVal
