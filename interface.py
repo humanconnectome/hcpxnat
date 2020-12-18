@@ -84,6 +84,8 @@ class HcpInterface(object):
         self.session = requests.Session()
         self.session.cookies.clear()
         self.session.cookies['JSESSIONID'] = str(SESSID.content.decode())
+        self.session.mount('http://', adapter)
+        self.session.mount('https://', adapter_s)
 
 ########################### Request Method Wrappers ###########################
     def get(self, uri, **kwargs):
